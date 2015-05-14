@@ -44,8 +44,8 @@ class Demod:
     self.sdr = RtlSdr()
     # Sampling rate
     self.sdr.rs = Demod.SAMP_RATE
-    # Pins 4 and 5
-    self.sdr.set_direct_sampling(2)
+    # Pins 1 and 2
+    self.sdr.set_direct_sampling(1)
     # Center frequency
     self.sdr.fc = carrier
     # I don't think this is used?
