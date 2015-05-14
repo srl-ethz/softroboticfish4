@@ -99,6 +99,15 @@ class Demod:
     codes = np.argmax(np.array(corrs), 0)
     return maxes, codes
 
+  def debounce(self, i, l, str):
+    try:
+      if i != self.debounce_i or abs(l - self.debounce_l) > 1:
+        print str
+    except AttributeError:
+      print str
+    self.debounce_i = i
+    self.debounce_l = l
+
   def extract(self, nc):
     for codeoffset in range(self.codelen):
       pkts = []
@@ -112,7 +121,7 @@ class Demod:
           str = ""
           for j in range(0,len(pkt)-1,8):
             str += chr(int(pkt[j:j+8][::-1], 2))
-          print str
+          self.debounce(self.index, -len(p), str)
           sys.stdout.flush()
 
       codestr = self.tocheck[codeoffset]['last'] + codestr
@@ -124,7 +133,7 @@ class Demod:
           str = ""
           for j in range(0,len(pkt)-1,8):
             str += chr(int(pkt[j:j+8][::-1], 2))
-          print str
+          self.debounce(self.index, -len(p), str)
           sys.stdout.flush()
       self.tocheck[codeoffset]['pkts'] = [] + pkts
       self.tocheck[codeoffset]['last'] = "" + codestr[-len(self.header)+1:]
@@ -197,5 +206,5 @@ def chipsToString(bits):
   return rxstr, char
   
 if __name__ == "__main__":
-  d = Demod(carrier=32000, bw=1000, sps=1, codes=manchester)
-  d.run()
+  d = Demod()
+  d.run(carrier=32000, bw=1000, sps=1, codes=manchester)
