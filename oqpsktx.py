@@ -38,6 +38,8 @@ class OQPSKTX(gr.top_block):
         ##################################################
         # Blocks
         ##################################################
+        self.source = blocks.vector_source_b(tuple(bytearray(txstr)), False, 1, [])
+
         self.rational_resampler_xxx_0 = filter.rational_resampler_ccc(
                 interpolation=int(samp_rate/bw),
                 decimation=1,
@@ -45,7 +47,6 @@ class OQPSKTX(gr.top_block):
                 fractional_bw=None,
         )
         self.digital_chunks_to_symbols_xx_0 = digital.chunks_to_symbols_bc((CODE_TABLE), CODE_LEN)
-        self.source = blocks.vector_source_b(tuple(bytearray(txstr)), False, 1, [])
         self.blocks_vector_source_x_0 = blocks.vector_source_c([0, sin(pi/4), 1, sin(3*pi/4)], True, 1, [])
         self.blocks_repeat_0 = blocks.repeat(gr.sizeof_gr_complex*1, 4)
         self.blocks_packed_to_unpacked_xx_0 = blocks.packed_to_unpacked_bb(CHUNK_LEN, gr.GR_LSB_FIRST)
@@ -62,20 +63,24 @@ class OQPSKTX(gr.top_block):
         ##################################################
         # Connections
         ##################################################
-        self.connect((self.rational_resampler_xxx_0, 0), (self.blocks_multiply_xx_0_0, 0))
-        self.connect((self.blocks_float_to_complex_0, 0), (self.rational_resampler_xxx_0, 0))
+        self.connect((self.source, 0), (self.blocks_packed_to_unpacked_xx_0, 0))
         self.connect((self.blocks_packed_to_unpacked_xx_0, 0), (self.digital_chunks_to_symbols_xx_0, 0))
         self.connect((self.digital_chunks_to_symbols_xx_0, 0), (self.blocks_repeat_0, 0))
+
+        self.connect((self.blocks_vector_source_x_0, 0), (self.blocks_multiply_xx_0, 0))
+        self.connect((self.blocks_repeat_0, 0), (self.blocks_multiply_xx_0, 1))
+
         self.connect((self.blocks_multiply_xx_0, 0), (self.blocks_complex_to_float_0, 0))
         self.connect((self.blocks_complex_to_float_0, 0), (self.blocks_float_to_complex_0, 0))
-        self.connect((self.blocks_delay_0, 0), (self.blocks_float_to_complex_0, 1))
         self.connect((self.blocks_complex_to_float_0, 1), (self.blocks_delay_0, 0))
-        self.connect((self.blocks_repeat_0, 0), (self.blocks_multiply_xx_0, 1))
-        self.connect((self.blocks_vector_source_x_0, 0), (self.blocks_multiply_xx_0, 0))
-        self.connect((self.blocks_complex_to_real_0, 0), (self.audio_sink_0, 0))
-        self.connect((self.blocks_multiply_xx_0_0, 0), (self.blocks_complex_to_real_0, 0))
+        self.connect((self.blocks_delay_0, 0), (self.blocks_float_to_complex_0, 1))
+
+        self.connect((self.blocks_float_to_complex_0, 0), (self.rational_resampler_xxx_0, 0))
+        self.connect((self.rational_resampler_xxx_0, 0), (self.blocks_multiply_xx_0_0, 0))
         self.connect((self.analog_sig_source_x_0, 0), (self.blocks_multiply_xx_0_0, 1))
-        self.connect((self.source, 0), (self.blocks_packed_to_unpacked_xx_0, 0))
+
+        self.connect((self.blocks_multiply_xx_0_0, 0), (self.blocks_complex_to_real_0, 0))
+        self.connect((self.blocks_complex_to_real_0, 0), (self.audio_sink_0, 0))
 
 
     def send(self, txstr):
@@ -83,12 +88,15 @@ class OQPSKTX(gr.top_block):
         self.start()
         self.wait()
 
+    '''
     def get_samp_rate(self):
         return self.samp_rate
 
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
         self.analog_sig_source_x_0.set_sampling_freq(self.samp_rate)
+        self.audio_sink_0.set_sampling_freq(self.samp_rate)
+        self.rational_resampler_xxx_0.set_s
 
     def get_carrier(self):
         return self.carrier
@@ -96,6 +104,7 @@ class OQPSKTX(gr.top_block):
     def set_carrier(self, carrier):
         self.carrier = carrier
         self.analog_sig_source_x_0.set_frequency(self.carrier)
+    '''
 
 def send(txstr, carrier, samp_rate, bw, amp):
     tb = OQPSKTX(txstr, carrier, samp_rate, bw, amp)
