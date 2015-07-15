@@ -17,12 +17,6 @@ class top_block(gr.top_block):
         gr.top_block.__init__(self, "Top Block")
 
         ##################################################
-        # Variables
-        ##################################################
-        self.samp_rate = samp_rate 
-        self.carrier = carrier 
-
-        ##################################################
         # Blocks
         ##################################################
         self.audio_sink_0 = audio.sink(samp_rate)
@@ -33,23 +27,6 @@ class top_block(gr.top_block):
         # Connections
         ##################################################
         self.connect((self.analog_sig_source_x_0, 0), (self.audio_sink_0, 0))
-
-
-# QT sink close method reimplementation
-
-    def get_samp_rate(self):
-        return self.samp_rate
-
-    def set_samp_rate(self, samp_rate):
-        self.samp_rate = samp_rate
-        self.analog_sig_source_x_0.set_sampling_freq(self.samp_rate)
-
-    def get_carrier(self):
-        return self.carrier
-
-    def set_carrier(self, carrier):
-        self.carrier = carrier
-        self.analog_sig_source_x_0.set_frequency(self.carrier)
 
 def send(carrier, samp_rate, amp):
     tb = top_block(carrier, samp_rate, amp)
