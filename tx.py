@@ -17,9 +17,9 @@ from gnuradio.filter import firdes
 from math import sin, pi, log
 from optparse import OptionParser
 
-from codes import codes154, codes2table
+from codes import manchester, codes154, codes2table
 
-CODE_LIST = codes154
+CODE_LIST = manchester
 CODE_TABLE, CODE_LEN = codes2table(CODE_LIST), len(CODE_LIST)
 CHUNK_LEN = int(log(CODE_LEN,2))
 
