@@ -24,7 +24,7 @@ CODE_TABLE, CODE_LEN = codes2table(CODE_LIST), len(CODE_LIST)
 
 class top_block(gr.top_block):
 
-    def __init__(self, txstr, carrier=10000, samp_rate = 80000, bw=4000):
+    def __init__(self, txstr, carrier=10000, samp_rate = 80000, bw=4000, amp=1):
         gr.top_block.__init__(self, "Top Block")
 
         ##################################################
@@ -54,7 +54,7 @@ class top_block(gr.top_block):
         self.blocks_complex_to_real_0 = blocks.complex_to_real(1)
         self.blocks_complex_to_float_0 = blocks.complex_to_float(1)
         self.audio_sink_0 = audio.sink(samp_rate, "")
-        self.analog_sig_source_x_0 = analog.sig_source_c(samp_rate, analog.GR_COS_WAVE, carrier, .07, 0)
+        self.analog_sig_source_x_0 = analog.sig_source_c(samp_rate, analog.GR_COS_WAVE, carrier, amp, 0)
 
         ##################################################
         # Connections
@@ -91,8 +91,8 @@ class top_block(gr.top_block):
         self.carrier = carrier
         self.analog_sig_source_x_0.set_frequency(self.carrier)
 
-def send(txstr, carrier, samp_rate, bw):
-    tb = top_block(txstr, carrier, samp_rate, bw)
+def send(txstr, carrier, samp_rate, bw, amp):
+    tb = top_block(txstr, carrier, samp_rate, bw, amp)
     tb.start()
     tb.wait()
 
@@ -106,8 +106,10 @@ if __name__ == '__main__':
                       help="set sample rate to RATE (Hz)", metavar="RATE")
     parser.add_option("-b", "--bandwidth", dest="bw", default=4000, type="int",
                       help="set bandwidth to BW (Hz)", metavar="BW")
+    parser.add_option("-a", "--amplitude", dest="amp", default=1, type="float",
+                      help="set amplitude to AMP", metavar="AMP")
 
     (options, args) = parser.parse_args()
 
-    send(options.txstr, options.carrier, options.samp_rate, options.bw)
+    send(options.txstr, options.carrier, options.samp_rate, options.bw, options.amp)
 
