@@ -13,7 +13,7 @@ from optparse import OptionParser
 
 class top_block(gr.top_block):
 
-    def __init__(self, txstr, carrier=10000, samp_rate = 80000, bw=1):
+    def __init__(self, carrier=10000, samp_rate = 80000, amp=1):
         gr.top_block.__init__(self, "Top Block")
 
         ##################################################
@@ -26,7 +26,7 @@ class top_block(gr.top_block):
         # Blocks
         ##################################################
         self.audio_sink_0 = audio.sink(samp_rate)
-        # XXX Hack: Should be bw, but it errors out on that
+        # XXX Hack: Should be amp instead of hardcoded 0.07, but it errors out on that
         self.analog_sig_source_x_0 = analog.sig_source_f(samp_rate, analog.GR_COS_WAVE, carrier, 0.07, 0)
 
         ##################################################
@@ -51,23 +51,21 @@ class top_block(gr.top_block):
         self.carrier = carrier
         self.analog_sig_source_x_0.set_frequency(self.carrier)
 
-def send(txstr, carrier, samp_rate, bw):
-    tb = top_block(txstr, carrier, samp_rate, bw)
+def send(carrier, samp_rate, amp):
+    tb = top_block(carrier, samp_rate, amp)
     tb.start()
     tb.wait()
 
 if __name__ == '__main__':
     parser = OptionParser(option_class=eng_option, usage="%prog: [options]")
-    parser.add_option("-m", "--message", dest="txstr", default="Hello World!",
-                      help="set tx string MSG", metavar="MSG")
     parser.add_option("-c", "--carrier", dest="carrier", default=10000, type="int",
                       help="set carrier to FREQ (Hz)", metavar="FREQ")
     parser.add_option("-s", "--samprate", dest="samp_rate", default=80000, type="int",
                       help="set sample rate to RATE (Hz)", metavar="RATE")
-    parser.add_option("-b", "--bandwidth", dest="bw", default=1, type="float",
-                      help="set bandwidth to BW (Hz)", metavar="BW")
+    parser.add_option("-a", "--amplitude", dest="amp", default=1, type="float",
+                      help="set amplitude to AMP", metavar="AMP")
 
     (options, args) = parser.parse_args()
 
-    send(options.txstr, options.carrier, options.samp_rate, options.bw)
+    send(options.carrier, options.samp_rate, options.amp)
 
