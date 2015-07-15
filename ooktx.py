@@ -10,18 +10,9 @@ from gnuradio import audio
 from gnuradio import blocks
 from gnuradio import digital
 from gnuradio import eng_notation
-from gnuradio import filter
 from gnuradio import gr
 from gnuradio.eng_option import eng_option
-from gnuradio.filter import firdes
-from math import sin, pi, log
 from optparse import OptionParser
-
-from codes import manchester, codes154, codes2table
-
-CODE_LIST = manchester
-CODE_TABLE, CODE_LEN = codes2table(CODE_LIST), len(CODE_LIST)
-CHUNK_LEN = int(log(CODE_LEN,2))
 
 class top_block(gr.top_block):
 
@@ -38,8 +29,8 @@ class top_block(gr.top_block):
         # Blocks
         ##################################################
         self.blocks_vector_source_x_1 = blocks.vector_source_b(tuple(bytearray(txstr)), False, 1, [])
-        self.blocks_packed_to_unpacked_xx_0 = blocks.packed_to_unpacked_bb(CHUNK_LEN, gr.GR_LSB_FIRST)
-        self.digital_chunks_to_symbols_xx_0 = digital.chunks_to_symbols_bc((CODE_TABLE), CODE_LEN)
+        self.blocks_packed_to_unpacked_xx_0 = blocks.packed_to_unpacked_bb(1, gr.GR_LSB_FIRST)
+        self.digital_chunks_to_symbols_xx_0 = digital.chunks_to_symbols_bc(([0,1,1,0]), 2)
 
         self.blocks_repeat_0 = blocks.repeat(gr.sizeof_gr_complex*1, samp_rate/bw)
         #XXX Hack: 0.07 should actually be parameter amp, but RPI crashes
