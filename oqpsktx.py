@@ -17,15 +17,15 @@ from gnuradio.filter import firdes
 from math import sin, pi, log
 from optparse import OptionParser
 
-from codes import manchester, codes154, codes2table
+from codes import codes154, codes2table
 
-CODE_LIST = manchester
+CODE_LIST = codes154
 CODE_TABLE, CODE_LEN = codes2table(CODE_LIST), len(CODE_LIST)
 CHUNK_LEN = int(log(CODE_LEN,2))
 
-class top_block(gr.top_block):
+class OQPSKTX(gr.top_block):
 
-    def __init__(self, txstr, carrier=10000, samp_rate = 80000, bw=4000, amp=1):
+    def __init__(self, txstr="Hello World", carrier=10000, samp_rate = 80000, bw=4000, amp=1):
         gr.top_block.__init__(self, "Top Block")
 
         ##################################################
@@ -33,6 +33,7 @@ class top_block(gr.top_block):
         ##################################################
         self.samp_rate = samp_rate 
         self.carrier = carrier 
+        self.bw = bw
 
         ##################################################
         # Blocks
@@ -44,7 +45,7 @@ class top_block(gr.top_block):
                 fractional_bw=None,
         )
         self.digital_chunks_to_symbols_xx_0 = digital.chunks_to_symbols_bc((CODE_TABLE), CODE_LEN)
-        self.blocks_vector_source_x_1 = blocks.vector_source_b(tuple(bytearray(txstr)), False, 1, [])
+        self.source = blocks.vector_source_b(tuple(bytearray(txstr)), False, 1, [])
         self.blocks_vector_source_x_0 = blocks.vector_source_c([0, sin(pi/4), 1, sin(3*pi/4)], True, 1, [])
         self.blocks_repeat_0 = blocks.repeat(gr.sizeof_gr_complex*1, 4)
         self.blocks_packed_to_unpacked_xx_0 = blocks.packed_to_unpacked_bb(CHUNK_LEN, gr.GR_LSB_FIRST)
@@ -74,10 +75,13 @@ class top_block(gr.top_block):
         self.connect((self.blocks_complex_to_real_0, 0), (self.audio_sink_0, 0))
         self.connect((self.blocks_multiply_xx_0_0, 0), (self.blocks_complex_to_real_0, 0))
         self.connect((self.analog_sig_source_x_0, 0), (self.blocks_multiply_xx_0_0, 1))
-        self.connect((self.blocks_vector_source_x_1, 0), (self.blocks_packed_to_unpacked_xx_0, 0))
+        self.connect((self.source, 0), (self.blocks_packed_to_unpacked_xx_0, 0))
 
 
-# QT sink close method reimplementation
+    def send(self, txstr):
+        self.source.set_data(tuple(bytearray(txstr)), [])
+        self.start()
+        self.wait()
 
     def get_samp_rate(self):
         return self.samp_rate
@@ -94,9 +98,8 @@ class top_block(gr.top_block):
         self.analog_sig_source_x_0.set_frequency(self.carrier)
 
 def send(txstr, carrier, samp_rate, bw, amp):
-    tb = top_block(txstr, carrier, samp_rate, bw, amp)
-    tb.start()
-    tb.wait()
+    tb = OQPSKTX(txstr, carrier, samp_rate, bw, amp)
+    tb.send(txstr)
 
 if __name__ == '__main__':
     parser = OptionParser(option_class=eng_option, usage="%prog: [options]")
