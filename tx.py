@@ -14,13 +14,14 @@ from gnuradio import filter
 from gnuradio import gr
 from gnuradio.eng_option import eng_option
 from gnuradio.filter import firdes
-from math import sin, pi
+from math import sin, pi, log
 from optparse import OptionParser
 
 from codes import codes154, codes2table
 
 CODE_LIST = codes154
 CODE_TABLE, CODE_LEN = codes2table(CODE_LIST), len(CODE_LIST)
+CHUNK_LEN = int(log(CODE_LEN,2))
 
 class top_block(gr.top_block):
 
@@ -46,7 +47,7 @@ class top_block(gr.top_block):
         self.blocks_vector_source_x_1 = blocks.vector_source_b(tuple(bytearray(txstr)), False, 1, [])
         self.blocks_vector_source_x_0 = blocks.vector_source_c([0, sin(pi/4), 1, sin(3*pi/4)], True, 1, [])
         self.blocks_repeat_0 = blocks.repeat(gr.sizeof_gr_complex*1, 4)
-        self.blocks_packed_to_unpacked_xx_0 = blocks.packed_to_unpacked_bb(4, gr.GR_LSB_FIRST)
+        self.blocks_packed_to_unpacked_xx_0 = blocks.packed_to_unpacked_bb(CHUNK_LEN, gr.GR_LSB_FIRST)
         self.blocks_multiply_xx_0_0 = blocks.multiply_vcc(1)
         self.blocks_multiply_xx_0 = blocks.multiply_vcc(1)
         self.blocks_float_to_complex_0 = blocks.float_to_complex(1)
