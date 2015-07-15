@@ -64,11 +64,6 @@ if __name__ == "__main__":
   eq = [x == y for (x,y) in zip(codes154,c2)]
   print all(eq)
 
-  for i, x in enumerate(codes154):
-    print i, hex(int(x,2))
-
-  print
-
   for i,x in enumerate(c2):
     print i, hex(int(x,2))
 
