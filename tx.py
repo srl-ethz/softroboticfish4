@@ -55,7 +55,8 @@ class top_block(gr.top_block):
         self.blocks_complex_to_real_0 = blocks.complex_to_real(1)
         self.blocks_complex_to_float_0 = blocks.complex_to_float(1)
         self.audio_sink_0 = audio.sink(samp_rate, "")
-        self.analog_sig_source_x_0 = analog.sig_source_c(samp_rate, analog.GR_COS_WAVE, carrier, amp, 0)
+        #XXX Hack: 0.07 should actually be parameter amp, but RPI crashes
+        self.analog_sig_source_x_0 = analog.sig_source_c(samp_rate, analog.GR_COS_WAVE, carrier, 0.07, 0)
 
         ##################################################
         # Connections
