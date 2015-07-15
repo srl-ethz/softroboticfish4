@@ -37,12 +37,6 @@ class top_block(gr.top_block):
         ##################################################
         # Blocks
         ##################################################
-        self.rational_resampler_xxx_0 = filter.rational_resampler_ccc(
-                interpolation=int(samp_rate/bw),
-                decimation=1,
-                taps=None,
-                fractional_bw=None,
-        )
         self.blocks_vector_source_x_1 = blocks.vector_source_b(tuple(bytearray(txstr)), False, 1, [])
         self.blocks_packed_to_unpacked_xx_0 = blocks.packed_to_unpacked_bb(CHUNK_LEN, gr.GR_LSB_FIRST)
         self.digital_chunks_to_symbols_xx_0 = digital.chunks_to_symbols_bc((CODE_TABLE), CODE_LEN)
@@ -65,22 +59,6 @@ class top_block(gr.top_block):
         self.connect((self.analog_sig_source_x_0, 0), (self.blocks_multiply_xx_0_0, 1))
         self.connect((self.blocks_multiply_xx_0_0, 0), (self.blocks_complex_to_real_0, 0))
         self.connect((self.blocks_complex_to_real_0, 0), (self.audio_sink_0, 0))
-
-# QT sink close method reimplementation
-
-    def get_samp_rate(self):
-        return self.samp_rate
-
-    def set_samp_rate(self, samp_rate):
-        self.samp_rate = samp_rate
-        self.analog_sig_source_x_0.set_sampling_freq(self.samp_rate)
-
-    def get_carrier(self):
-        return self.carrier
-
-    def set_carrier(self, carrier):
-        self.carrier = carrier
-        self.analog_sig_source_x_0.set_frequency(self.carrier)
 
 def send(txstr, carrier, samp_rate, bw, amp):
     tb = top_block(txstr, carrier, samp_rate, bw, amp)
