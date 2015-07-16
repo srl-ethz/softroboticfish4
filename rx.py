@@ -10,7 +10,7 @@ import sys, select
 
 class Demod:
   SAMP_RATE = 1024e3
-  SAMP_WINDOW = 1024*40
+  SAMP_WINDOW = 1024*80
 
   def __init__(self, carrier=32000, bw=1000, sps=8, codes=manchester):
     self.sdr = RtlSdr()
@@ -79,6 +79,7 @@ class Demod:
 
     self.sdr.read_samples_async(callback, Demod.SAMP_WINDOW)
     print self.index, "samples read"
+    sys.stdout.flush()
 
   def plot(self):
     fig = plt.figure()
@@ -88,10 +89,22 @@ class Demod:
     ax2.plot(self.demod)
     plt.show()
 
-  def checkdemod(self, index, packetlen=5):
+  def checkdemod(self, index, demod=None, packetlen=5):
+    if demod is None:
+      demod = self.demod
     l = packetlen*8+6+7
     b = self.demod[index:index+l*self.codelen:self.codelen]
-    print chipsToString(np.concatenate(([-1,1], b, [1])))
+    return chipsToString(np.concatenate(([-1,1], b, [1])))
+
+  def findstring(self, demod = None, packetlen=5):
+    if demod is None:
+      demod = self.demod
+    find = {}
+    for i in range(len(demod)):
+      s, c = self.checkdemod(i, demod, packetlen)
+      if len(s) and s[0] == 'a' and s[-1] == 'x':
+        find[i] = s[1:-1]
+    return find
 
 def chipsToString(bits):
   char = 0
@@ -103,26 +116,6 @@ def chipsToString(bits):
       char = 0
   return rxstr, char
   
-def decode(d):
-  header = [1, 1, 1, -1, -1, 1]
-  for j in range(8):
-    b = np.sign(d[j::8])
-    hind = 0
-    hloc = 0
-
-    for i, bit in enumerate(b):
-      if hind < len(header):
-        if bit == header[hind]:
-          hind += 1
-          if hind == len(header):
-            hloc = (8*i+j-6)
-            rxstr, tail = chipsToString(b[i+1:i+48])
-            if tail == 120:
-              print "header found at %d in bin %d: " % (hloc, j), rxstr
-            hind = 0
-        else:
-          hind = 0
-
 if __name__ == "__main__":
   d = Demod(carrier=32000, bw=1000, sps=4, codes = manchester)
   d.run(50)
