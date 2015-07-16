@@ -62,6 +62,19 @@ class OOKTX(gr.top_block):
         self.start()
         self.wait()
 
+MAX_RETRIES = 100
+def gettx(carrier=32000, bw=1000, samp_rate=192000, amp=1):
+    for i in range(MAX_RETRIES):
+        print "try %d" % i
+        try:
+            tx = None
+            tx = OOKTX("hello", carrier, samp_rate, bw, amp)
+            tx.send("Hi")
+        except:
+            del(tx)
+        else:
+            return tx
+
 def send(txstr, carrier, samp_rate, bw, amp):
     tb = OOKTX(txstr, carrier, samp_rate, bw, amp)
     tb.send(txstr)
