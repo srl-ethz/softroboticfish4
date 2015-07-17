@@ -19,6 +19,20 @@ class Demod:
   SAMP_WINDOW = 1024*40
 
   def __init__(self, carrier=32000, bw=1000, sps=8, codes=manchester, mod=Mods.MAGNITUDE):
+    self.mod = mod
+
+    ts = np.arange(Demod.SAMP_WINDOW*2)/Demod.SAMP_RATE
+    self.mixer = np.exp(-2*np.pi*carrier*ts*1j)
+
+    decim = Demod.SAMP_RATE/bw/sps
+    assert decim == int(decim)
+    self.decim = int(decim)
+    assert Demod.SAMP_WINDOW % self.decim == 0
+
+    self.sampchips = Demod.SAMP_WINDOW / self.decim 
+    self.corr = codes2corr(codes, sps)
+    self.codelen = len(self.corr[0])
+
     self.sdr = RtlSdr()
     # Sampling rate
     self.sdr.rs = Demod.SAMP_RATE
@@ -28,24 +42,6 @@ class Demod:
     self.sdr.fc = 0
     # I don't think this is used?
     self.sdr.gain = 1
-
-    self.bw = bw
-    self.sps = sps
-    self.mod = mod
-
-    ts = np.arange(Demod.SAMP_WINDOW*2)/Demod.SAMP_RATE
-    self.mixer = np.exp(-2*np.pi*carrier*ts*1j)
-
-    decim = Demod.SAMP_RATE/self.bw/self.sps
-    assert decim == int(decim)
-    self.decim = int(decim)
-    assert Demod.SAMP_WINDOW % self.decim == 0
-
-    self.sampchips = Demod.SAMP_WINDOW / self.decim 
-    self.corr = codes2corr(codes, sps)
-    self.codelen = len(self.corr[0])
-
-    self.last = np.zeros(Demod.SAMP_WINDOW)
 
   def bb2c(self, baseband):
     mag = np.abs(baseband)
@@ -84,6 +80,7 @@ class Demod:
     self.sdr.close()
 
   def run(self, limit):
+    self.last = np.zeros(Demod.SAMP_WINDOW)
     self.chips = np.zeros(limit * Demod.SAMP_WINDOW / self.decim)
     self.corrs = np.zeros(limit * Demod.SAMP_WINDOW / self.decim)
     self.demod = np.zeros(limit * Demod.SAMP_WINDOW / self.decim)
@@ -91,7 +88,7 @@ class Demod:
 
     @limit_calls(limit)
     def callback(samp, sdr):
-      if select.select([sys.stdin], [], [], .000001)[0]:
+      if select.select([sys.stdin], [], [], 0)[0]:
         sdr.cancel_read_async()
       self.ddc(samp, sdr)
 
