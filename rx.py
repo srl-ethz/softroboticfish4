@@ -50,15 +50,16 @@ class Demod:
   def bb2c(self, baseband):
     mag = np.abs(baseband)
     phase = np.angle(baseband)
-    dp = np.ediff1d(np.unwrap(phase))
+    dp = np.mod(np.ediff1d(phase)+np.pi, 2*np.pi)-np.pi
     return mag[1:], phase[1:], dp
 
   def decode(self, chips):
     corrs = []
     for c in self.corr:
       corrs.append(np.correlate(chips, c))
+    maxes = np.max(np.array(corrs), 0)
     codes = np.argmax(np.array(corrs), 0)
-    return codes
+    return maxes, codes
 
   def ddc(self, samp, sdr):
     extsamp = np.concatenate((self.last, samp))
@@ -72,9 +73,10 @@ class Demod:
       sig = dp
     else:
       sig = mag
-    codes = self.decode(sig)
+    corrs, codes = self.decode(sig)
 
     self.chips[self.index*self.sampchips:(self.index+1)*self.sampchips] = sig[self.codelen:self.codelen+self.sampchips]
+    self.corrs[self.index*self.sampchips:(self.index+1)*self.sampchips] = corrs[self.codelen:self.codelen+self.sampchips]
     self.demod[self.index*self.sampchips:(self.index+1)*self.sampchips] = codes[self.codelen:self.codelen+self.sampchips]
     self.index += 1
 
@@ -83,6 +85,7 @@ class Demod:
 
   def run(self, limit):
     self.chips = np.zeros(limit * Demod.SAMP_WINDOW / self.decim)
+    self.corrs = np.zeros(limit * Demod.SAMP_WINDOW / self.decim)
     self.demod = np.zeros(limit * Demod.SAMP_WINDOW / self.decim)
     self.index = 0
 
@@ -97,11 +100,14 @@ class Demod:
     sys.stdout.flush()
 
   def plot(self):
+    plt.ion()
     fig = plt.figure()
-    ax1 = fig.add_subplot(211)
+    ax1 = fig.add_subplot(311)
     ax1.plot(self.chips)
-    ax2 = fig.add_subplot(212, sharex=ax1)
-    ax2.plot(self.demod)
+    ax2 = fig.add_subplot(312, sharex=ax1)
+    ax2.plot(self.corrs)
+    ax3 = fig.add_subplot(313, sharex=ax1)
+    ax3.plot(self.demod)
     plt.show()
 
   def checkdemod(self, index, demod=None, packetlen=5):
