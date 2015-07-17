@@ -12,7 +12,19 @@ def enum(*sequential, **named):
     enums = dict(zip(sequential, range(len(sequential))), **named)
     return type('Enum', (), enums)
 
+def find_all(a_str, sub):
+    start = 0
+    while True:
+        start = a_str.find(sub, start)
+        if start == -1: return
+        yield start
+        start += len(sub) # use start += 1 to find overlapping matches
+
 Mods = enum("MAGNITUDE", "PHASE", "DPHASE")
+
+HEADER = '00011011111010'
+FOOTER = '0001111'
+PKTLEN = 8*4 + len(FOOTER)
 
 class Demod:
   SAMP_RATE = 256000.
@@ -57,6 +69,36 @@ class Demod:
     codes = np.argmax(np.array(corrs), 0)
     return maxes, codes
 
+  def extract(self, nc):
+    for codeoffset in range(self.codelen):
+      pkts = []
+      codestr = "".join(map(repr, map(int, nc[codeoffset::self.codelen])))
+
+      for p in self.tocheck[codeoffset]['pkts']:
+        pkt = p + codestr[0:PKTLEN-len(p)]
+        if len(pkt) < PKTLEN:
+          pkts.append(pkt)
+        elif pkt[-len(FOOTER):] == FOOTER:
+          str = ""
+          for j in range(0,len(pkt)-1,8):
+            str += chr(int(pkt[j:j+8][::-1], 2))
+          print str
+          sys.stdout.flush()
+
+      codestr = self.tocheck[codeoffset]['last'] + codestr
+      for ind in find_all(codestr, HEADER):
+        pkt = codestr[ind+len(HEADER):ind+len(HEADER)+PKTLEN]
+        if len(pkt) < PKTLEN:
+          pkts.append(pkt)
+        elif pkt[-len(FOOTER):] == FOOTER:
+          str = ""
+          for j in range(0,len(pkt)-1,8):
+            str += chr(int(pkt[j:j+8][::-1], 2))
+          print str
+          sys.stdout.flush()
+      self.tocheck[codeoffset]['pkts'] = [] + pkts
+      self.tocheck[codeoffset]['last'] = "" + codestr[-len(HEADER)+1:]
+
   def ddc(self, samp, sdr):
     extsamp = np.concatenate((self.last, samp))
     self.last = samp
@@ -71,9 +113,12 @@ class Demod:
       sig = mag
     corrs, codes = self.decode(sig)
 
+    nc = codes[self.codelen:self.codelen+self.sampchips]
+    self.extract(nc)
+
     self.chips[self.index*self.sampchips:(self.index+1)*self.sampchips] = sig[self.codelen:self.codelen+self.sampchips]
     self.corrs[self.index*self.sampchips:(self.index+1)*self.sampchips] = corrs[self.codelen:self.codelen+self.sampchips]
-    self.demod[self.index*self.sampchips:(self.index+1)*self.sampchips] = codes[self.codelen:self.codelen+self.sampchips]
+    self.demod[self.index*self.sampchips:(self.index+1)*self.sampchips] = nc #codes[self.codelen:self.codelen+self.sampchips]
     self.index += 1
 
   def end(self):
@@ -85,6 +130,11 @@ class Demod:
     self.corrs = np.zeros(limit * Demod.SAMP_WINDOW / self.decim)
     self.demod = np.zeros(limit * Demod.SAMP_WINDOW / self.decim)
     self.index = 0
+    self.tocheck = [None] * self.codelen
+    for i in range(self.codelen):
+      self.tocheck[i] = dict()
+      self.tocheck[i]['last'] = ''.join(range(0))
+      self.tocheck[i]['pkts'] = range(0)
 
     @limit_calls(limit)
     def callback(samp, sdr):
@@ -117,11 +167,11 @@ class Demod:
   def findstring(self, demod = None, packetlen=5):
     if demod is None:
       demod = self.demod
-    find = {}
+    find = []
     for i in range(len(demod)):
       s, c = self.checkdemod(i, demod, packetlen)
       if len(s) and s[0] == 'a' and s[-1] == 'x':
-        find[i] = s[1:-1]
+        find.append((i, s[1:-1]))
     return find
 
 def chipsToString(bits):
