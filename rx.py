@@ -116,31 +116,42 @@ class Demod:
     nc = codes[self.codelen:self.codelen+self.sampchips]
     self.extract(nc)
 
-    self.chips[self.index*self.sampchips:(self.index+1)*self.sampchips] = sig[self.codelen:self.codelen+self.sampchips]
-    self.corrs[self.index*self.sampchips:(self.index+1)*self.sampchips] = corrs[self.codelen:self.codelen+self.sampchips]
-    self.demod[self.index*self.sampchips:(self.index+1)*self.sampchips] = nc #codes[self.codelen:self.codelen+self.sampchips]
-    self.index += 1
+    if self.index is not None:
+      self.chips[self.index*self.sampchips:(self.index+1)*self.sampchips] = sig[self.codelen:self.codelen+self.sampchips]
+      self.corrs[self.index*self.sampchips:(self.index+1)*self.sampchips] = corrs[self.codelen:self.codelen+self.sampchips]
+      self.demod[self.index*self.sampchips:(self.index+1)*self.sampchips] = nc #codes[self.codelen:self.codelen+self.sampchips]
+      self.index += 1
 
   def end(self):
     self.sdr.close()
 
-  def run(self, limit):
+  def run(self, limit=None):
     self.last = np.zeros(Demod.SAMP_WINDOW)
-    self.chips = np.zeros(limit * Demod.SAMP_WINDOW / self.decim)
-    self.corrs = np.zeros(limit * Demod.SAMP_WINDOW / self.decim)
-    self.demod = np.zeros(limit * Demod.SAMP_WINDOW / self.decim)
-    self.index = 0
+    if limit:
+      self.chips = np.zeros(limit * Demod.SAMP_WINDOW / self.decim)
+      self.corrs = np.zeros(limit * Demod.SAMP_WINDOW / self.decim)
+      self.demod = np.zeros(limit * Demod.SAMP_WINDOW / self.decim)
+      self.index = 0
+    else:
+      self.index = None
+
     self.tocheck = [None] * self.codelen
     for i in range(self.codelen):
       self.tocheck[i] = dict()
       self.tocheck[i]['last'] = ''.join(range(0))
       self.tocheck[i]['pkts'] = range(0)
 
-    @limit_calls(limit)
-    def callback(samp, sdr):
-      if select.select([sys.stdin], [], [], 0)[0]:
-        sdr.cancel_read_async()
-      self.ddc(samp, sdr)
+    if limit is None:
+      def callback(samp, sdr):
+        if select.select([sys.stdin], [], [], 0)[0]:
+          sdr.cancel_read_async()
+        self.ddc(samp, sdr)
+    else:
+      @limit_calls(limit)
+      def callback(samp, sdr):
+        if select.select([sys.stdin], [], [], 0)[0]:
+          sdr.cancel_read_async()
+        self.ddc(samp, sdr)
 
     self.sdr.read_samples_async(callback, Demod.SAMP_WINDOW)
     print self.index, "samples read"
@@ -185,6 +196,5 @@ def chipsToString(bits):
   return rxstr, char
   
 if __name__ == "__main__":
-  d = Demod(carrier=32000, bw=1000, sps=4, codes=manchester)
-  d.run(50)
-  d.findstring()
+  d = Demod(carrier=32000, bw=1000, sps=1, codes=manchester)
+  d.run()
