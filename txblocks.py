@@ -60,7 +60,7 @@ def ooktx(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1):
 
     self.connect((blocks_repeat_0, 0), (self.sink, 0))
 
-CODE_LIST = codes.manchester
+CODE_LIST = codes.mycode
 CODE_TABLE, CODE_LEN = codes.codes2table(CODE_LIST), len(CODE_LIST)
 CHUNK_LEN = int(log(CODE_LEN,2))
 
