@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import sys, select
 
 class Demod:
-  SAMP_RATE = 1024e3
+  SAMP_RATE = 256000.
   SAMP_WINDOW = 1024*80
 
   def __init__(self, carrier=32000, bw=1000, sps=8, codes=manchester):
@@ -59,6 +59,12 @@ class Demod:
     mag, phase, dp  = self.bb2c(baseband)
     corrs = self.decode(mag)
 
+    '''
+    find = self.findstring(corrs[0], packetlen=2)
+    if len(find.values()):
+      print find
+      sys.stdout.flush()
+    '''
     self.chips[self.index*self.sampchips:(self.index+1)*self.sampchips] = mag[self.codelen:self.codelen+self.sampchips]
     self.demod[self.index*self.sampchips:(self.index+1)*self.sampchips] = corrs[0][self.codelen:self.codelen+self.sampchips]
     self.index += 1
@@ -117,17 +123,6 @@ def chipsToString(bits):
   return rxstr, char
   
 if __name__ == "__main__":
-  d = Demod(carrier=32000, bw=1000, sps=4, codes = manchester)
+  d = Demod(carrier=32000, bw=1000, sps=4, codes=manchester)
   d.run(50)
-
-  decode(d.demod)
-
-  '''
-  dx = len(d.corr[0]*8)
-  head = np.zeros(len(d.chips)-dx)
-  for i in range(len(head)):
-    head[i] = sum(d.chips[i:8*dx:dx])
-
-  p = plt.plot(head)
-  plt.show()
-  '''
+  d.findstring()

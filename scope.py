@@ -7,7 +7,7 @@ from rtlsdr import RtlSdr
 
 sdr = RtlSdr()
 # Sampling rate
-sdr.rs = 1024e3
+sdr.rs = 256000. #1024e3
 # Pins 4 and 5
 sdr.set_direct_sampling(2)
 
