@@ -10,7 +10,7 @@ import sys, select
 
 class Demod:
   SAMP_RATE = 256000.
-  SAMP_WINDOW = 1024*80
+  SAMP_WINDOW = 1024*40
 
   def __init__(self, carrier=32000, bw=1000, sps=8, codes=manchester):
     self.sdr = RtlSdr()
@@ -55,16 +55,11 @@ class Demod:
   def ddc(self, samp, sdr):
     extsamp = np.concatenate((self.last, samp))
     self.last = samp
-    baseband = decimate(extsamp * self.mixer, self.decim, ftype='fir')
+    #baseband = decimate(extsamp * self.mixer, self.decim, ftype='fir')
+    baseband = np.sum(np.reshape(extsamp * self.mixer, (-1,self.decim)), 1)
     mag, phase, dp  = self.bb2c(baseband)
     corrs = self.decode(mag)
 
-    '''
-    find = self.findstring(corrs[0], packetlen=2)
-    if len(find.values()):
-      print find
-      sys.stdout.flush()
-    '''
     self.chips[self.index*self.sampchips:(self.index+1)*self.sampchips] = mag[self.codelen:self.codelen+self.sampchips]
     self.demod[self.index*self.sampchips:(self.index+1)*self.sampchips] = corrs[0][self.codelen:self.codelen+self.sampchips]
     self.index += 1
