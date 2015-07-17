@@ -8,11 +8,17 @@ import matplotlib.pyplot as plt
 
 import sys, select
 
+def enum(*sequential, **named):
+    enums = dict(zip(sequential, range(len(sequential))), **named)
+    return type('Enum', (), enums)
+
+Mods = enum("MAGNITUDE", "PHASE", "DPHASE")
+
 class Demod:
   SAMP_RATE = 256000.
   SAMP_WINDOW = 1024*40
 
-  def __init__(self, carrier=32000, bw=1000, sps=8, codes=manchester):
+  def __init__(self, carrier=32000, bw=1000, sps=8, codes=manchester, mod=Mods.MAGNITUDE):
     self.sdr = RtlSdr()
     # Sampling rate
     self.sdr.rs = Demod.SAMP_RATE
@@ -25,6 +31,7 @@ class Demod:
 
     self.bw = bw
     self.sps = sps
+    self.mod = mod
 
     ts = np.arange(Demod.SAMP_WINDOW*2)/Demod.SAMP_RATE
     self.mixer = np.exp(-2*np.pi*carrier*ts*1j)
@@ -50,7 +57,8 @@ class Demod:
     corrs = []
     for c in self.corr:
       corrs.append(np.correlate(chips, c))
-    return corrs
+    codes = np.argmax(np.array(corrs), 0)
+    return codes
 
   def ddc(self, samp, sdr):
     extsamp = np.concatenate((self.last, samp))
@@ -58,10 +66,16 @@ class Demod:
     #baseband = decimate(extsamp * self.mixer, self.decim, ftype='fir')
     baseband = np.sum(np.reshape(extsamp * self.mixer, (-1,self.decim)), 1)
     mag, phase, dp  = self.bb2c(baseband)
-    corrs = self.decode(mag)
+    if self.mod == Mods.PHASE:
+      sig = phase
+    elif self.mod == Mods.DPHASE:
+      sig = dp
+    else:
+      sig = mag
+    codes = self.decode(sig)
 
-    self.chips[self.index*self.sampchips:(self.index+1)*self.sampchips] = mag[self.codelen:self.codelen+self.sampchips]
-    self.demod[self.index*self.sampchips:(self.index+1)*self.sampchips] = corrs[0][self.codelen:self.codelen+self.sampchips]
+    self.chips[self.index*self.sampchips:(self.index+1)*self.sampchips] = sig[self.codelen:self.codelen+self.sampchips]
+    self.demod[self.index*self.sampchips:(self.index+1)*self.sampchips] = codes[self.codelen:self.codelen+self.sampchips]
     self.index += 1
 
   def end(self):
@@ -95,7 +109,7 @@ class Demod:
       demod = self.demod
     l = packetlen*8+6+7
     b = self.demod[index:index+l*self.codelen:self.codelen]
-    return chipsToString(np.concatenate(([-1,1], b, [1])))
+    return chipsToString(np.concatenate(([1,0], b, [0])))
 
   def findstring(self, demod = None, packetlen=5):
     if demod is None:
@@ -111,7 +125,7 @@ def chipsToString(bits):
   char = 0
   rxstr = ""
   for i, b in enumerate(bits):
-    char += 0 if b > 0 else (1 << (i%8))
+    char += (1 << (i%8)) if b else 0
     if i % 8 == 7:
       rxstr += chr(char)
       char = 0
