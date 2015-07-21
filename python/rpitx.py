@@ -16,6 +16,8 @@ class RPITX(gr.top_block):
         block(self, carrier, samp_rate, bw, amp)
 
     def send(self, txstr):
+        bytes = tuple(bytearray(txstr))
+        print bytes 
         self.source.set_data(tuple(bytearray(txstr)), [])
         self.start()
         self.wait()

@@ -1,7 +1,6 @@
 #!/bin/python
 
 import numpy as np
-from scipy.signal import decimate
 from rtlsdr import RtlSdr, limit_calls
 from codes import manchester, codes154, codes2corr
 import matplotlib.pyplot as plt
@@ -97,16 +96,17 @@ class Demod:
       self.tocheck[codeoffset]['last'] = "" + codestr[-len(HEADER)+1:]
 
   def ddc(self, samp, sdr):
-    iq = np.empty(len(samp)//2, 'complex')
-    iq.real, iq.imag = samp[::2], samp[1::2]
+    s = np.asarray(samp)
+    i, q = s[::2], s[1::2]
+    i = np.mean(i.reshape(-1,self.decim), 1) # poor man's decimation
+    q = np.mean(q.reshape(-1,self.decim), 1) # poor man's decimation
+    iq = np.empty(len(i), 'complex')
+    iq.real, iq.imag = i, q
     iq /= (255/2)
     iq -= (1 + 1j)
 
-    extsamp = np.concatenate((self.last, iq))
+    baseband = np.concatenate((self.last, iq))
     self.last = iq
-    #baseband = decimate(extsamp * self.mixer, self.decim, ftype='fir')
-    #baseband = decimate(extsamp, self.decim, ftype='fir')
-    baseband = np.mean(np.reshape(extsamp, (-1,self.decim)), 1) # poor man's decimation
     mag, phase, dp  = self.bb2c(baseband)
     if self.mod == Mods.PHASE:
       sig = phase
