@@ -8,9 +8,10 @@
 
 #include "rtl-sdr.h"
 #include "convenience/convenience.h"
+#include "demod.h"
 
 #define DEFAULT_SAMPLE_RATE		256000
-#define DEFAULT_SAMPLE_LENGTH		81920
+#define DEFAULT_SAMPLE_LENGTH		1024*40
 
 #define MINIMAL_BUF_LENGTH		512
 #define MAXIMAL_BUF_LENGTH		(256 * 16384)
@@ -18,13 +19,14 @@
 static int do_exit = 0;
 static uint32_t bytes_to_read = 0;
 static rtlsdr_dev_t *dev = NULL;
-static float complex mixer[DEFAULT_SAMPLE_LENGTH]
 
 void usage(void)
 {
 	fprintf(stderr,
 		"rtl_sdr, an I/Q recorder for RTL2832 based DVB-T receivers\n\n"
-		"Usage:\t -f frequency_to_tune_to [Hz]\n"
+		"Usage:\t -f carrier frequency_to_tune_to [Hz]\n"
+		"\t[-b bandwidth (default: 1000)]\n"
+		"\t[-s samples per symbol (default: 4)]\n"
 		"\t[-d device_index (default: 0)]\n"
 		"\t[-c direct sampling channel (default: 0=none; i=1,q=2)]\n"
 		"\t[-n number of samples to read (default: 0, infinite)]\n"
@@ -52,6 +54,8 @@ static void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx)
 			rtlsdr_cancel_async(dev);
 		}
 
+                demod_callback(buf, len, ctx);
+
 		if (fwrite(buf, 1, len, (FILE*)ctx) != len) {
 			fprintf(stderr, "Short write, samples lost, exiting!\n");
 			rtlsdr_cancel_async(dev);
@@ -70,27 +74,34 @@ int main(int argc, char **argv)
 	int r, opt;
 	int direct = 0;
 	int gain = 0;
-	int ppm_error = 0;
+	int sps = 4;
+	int bw = 1000;
 	int sync_mode = 0;
 	FILE *file;
 	uint8_t *buffer;
 	int dev_index = 0;
 	int dev_given = 0;
-	uint32_t frequency = 0; //100000000;
+	uint32_t carrier = 32000; //100000000;
 	uint32_t samp_rate = DEFAULT_SAMPLE_RATE;
 	uint32_t out_block_size = DEFAULT_SAMPLE_LENGTH*2;
 
-	while ((opt = getopt(argc, argv, "d:f:c:n:S")) != -1) {
+	while ((opt = getopt(argc, argv, "d:s:b:f:c:n:S")) != -1) {
 		switch (opt) {
 		case 'd':
 			dev_index = verbose_device_search(optarg);
 			dev_given = 1;
 			break;
 		case 'f':
-			frequency = (uint32_t)atofs(optarg);
+			carrier = (uint32_t)atofs(optarg);
 			break;
                 case 'c':
                         direct = atoi(optarg);
+                        break;
+                case 's':
+                        sps = atoi(optarg);
+                        break;
+                case 'b':
+                        bw = atoi(optarg);
                         break;
 		case 'n':
 			bytes_to_read = (uint32_t)atof(optarg) * 2;
@@ -118,7 +129,7 @@ int main(int argc, char **argv)
 			"Minimal length: %u\n", MINIMAL_BUF_LENGTH);
 		fprintf(stderr,
 			"Maximal length: %u\n", MAXIMAL_BUF_LENGTH);
-		out_block_size = DEFAULT_BUF_LENGTH;
+		out_block_size = DEFAULT_SAMPLE_LENGTH*2;
 	}
 
 	buffer = malloc(out_block_size * sizeof(uint8_t));
@@ -151,7 +162,7 @@ int main(int argc, char **argv)
 	verbose_set_sample_rate(dev, samp_rate);
 
 	/* Set the frequency */
-	verbose_set_frequency(dev, frequency);
+	verbose_set_frequency(dev, 0);
 
 	if (0 == gain) {
 		 /* Enable automatic gain */
@@ -161,8 +172,6 @@ int main(int argc, char **argv)
 		gain = nearest_gain(dev, gain);
 		verbose_gain_set(dev, gain);
 	}
-
-	verbose_ppm_set(dev, ppm_error);
 
 	if(strcmp(filename, "-") == 0) { /* Write samples to stdout */
 		file = stdout;
@@ -176,6 +185,7 @@ int main(int argc, char **argv)
 
 	/* Reset endpoint before we start reading from it (mandatory) */
 	verbose_reset_buffer(dev);
+        demod_init(samp_rate, carrier, bw, sps);
 
 	if (sync_mode) {
 		fprintf(stderr, "Reading samples in sync mode...\n");
@@ -218,6 +228,7 @@ int main(int argc, char **argv)
 	if (file != stdout)
 		fclose(file);
 
+        demod_close();
 	rtlsdr_close(dev);
 	free (buffer);
 out:

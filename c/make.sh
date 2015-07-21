@@ -1,1 +1,1 @@
-gcc -o rpirx rpirx.c convenience/convenience.c -lrtlsdr
+gcc -o rpirx rpirx.c demod.c convenience/convenience.c -lrtlsdr -lm
