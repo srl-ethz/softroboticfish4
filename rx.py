@@ -33,9 +33,6 @@ class Demod:
   def __init__(self, carrier=32000, bw=1000, sps=8, codes=manchester, mod=Mods.MAGNITUDE):
     self.mod = mod
 
-    ts = np.arange(Demod.SAMP_WINDOW*2)/Demod.SAMP_RATE
-    self.mixer = np.exp(-2*np.pi*carrier*ts*1j)
-
     decim = Demod.SAMP_RATE/bw/sps
     assert decim == int(decim)
     self.decim = int(decim)
@@ -51,7 +48,7 @@ class Demod:
     # Pins 4 and 5
     self.sdr.set_direct_sampling(2)
     # Center frequency
-    self.sdr.fc = 0
+    self.sdr.fc = carrier
     # I don't think this is used?
     self.sdr.gain = 1
 
@@ -102,8 +99,7 @@ class Demod:
   def ddc(self, samp, sdr):
     extsamp = np.concatenate((self.last, samp))
     self.last = samp
-    #baseband = decimate(extsamp * self.mixer, self.decim, ftype='fir')
-    baseband = np.sum(np.reshape(extsamp * self.mixer, (-1,self.decim)), 1)
+    baseband = np.sum(np.reshape(extsamp, (-1,self.decim)), 1)
     mag, phase, dp  = self.bb2c(baseband)
     if self.mod == Mods.PHASE:
       sig = phase
