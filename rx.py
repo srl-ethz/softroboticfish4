@@ -97,9 +97,16 @@ class Demod:
       self.tocheck[codeoffset]['last'] = "" + codestr[-len(HEADER)+1:]
 
   def ddc(self, samp, sdr):
-    extsamp = np.concatenate((self.last, samp))
-    self.last = samp
-    baseband = np.sum(np.reshape(extsamp, (-1,self.decim)), 1)
+    iq = np.empty(len(samp)//2, 'complex')
+    iq.real, iq.imag = samp[::2], samp[1::2]
+    iq /= (255/2)
+    iq -= (1 + 1j)
+
+    extsamp = np.concatenate((self.last, iq))
+    self.last = iq
+    #baseband = decimate(extsamp * self.mixer, self.decim, ftype='fir')
+    #baseband = decimate(extsamp, self.decim, ftype='fir')
+    baseband = np.mean(np.reshape(extsamp, (-1,self.decim)), 1) # poor man's decimation
     mag, phase, dp  = self.bb2c(baseband)
     if self.mod == Mods.PHASE:
       sig = phase
@@ -149,7 +156,7 @@ class Demod:
           sdr.cancel_read_async()
         self.ddc(samp, sdr)
 
-    self.sdr.read_samples_async(callback, Demod.SAMP_WINDOW)
+    self.sdr.read_bytes_async(callback, Demod.SAMP_WINDOW*2)
     print self.index, "samples read"
     sys.stdout.flush()
 
