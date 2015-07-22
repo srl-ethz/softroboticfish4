@@ -26,7 +26,7 @@ def topblock(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1):
 
     #XXX Hack: 0.07 should actually be parameter amp, but RPI crashes
     self.sink = blocks.multiply_vcc(1)
-    analog_sig_source_x_0 = analog.sig_source_c(samp_rate, analog.GR_COS_WAVE, carrier, 0.07, 0)
+    analog_sig_source_x_0 = analog.sig_source_c(samp_rate, analog.GR_COS_WAVE, carrier, 0.3, 0)
     blocks_complex_to_real_0 = blocks.complex_to_real(1)
     stereo = blocks.multiply_const_vff((-1, ))
     audio_sink_0 = audio.sink(samp_rate, "")
