@@ -22,8 +22,8 @@ def find_all(a_str, sub):
 Mods = enum("MAGNITUDE", "PHASE", "DPHASE")
 
 HEADER = '00011011111010'
-FOOTER = '' #'0001111'
-PKTBYTES = 2
+FOOTER = '0001111'
+PKTBYTES = 4
 PKTLEN = 8*PKTBYTES + len(FOOTER)
 
 class Demod:
