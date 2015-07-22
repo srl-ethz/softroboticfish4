@@ -22,8 +22,9 @@ def find_all(a_str, sub):
 Mods = enum("MAGNITUDE", "PHASE", "DPHASE")
 
 HEADER = '00011011111010'
-FOOTER = '0001111'
-PKTLEN = 8*4 + len(FOOTER)
+FOOTER = '' #'0001111'
+PKTBYTES = 2
+PKTLEN = 8*PKTBYTES + len(FOOTER)
 
 class Demod:
   SAMP_RATE = 256000.
@@ -38,10 +39,17 @@ class Demod:
     # I don't think this is used?
     self.sdr.gain = 1
 
-  def run(self, limit=None, carrier=32000, bw=1000, sps=8, codes=manchester, mod=Mods.MAGNITUDE):
+  def run(self, limit=None, 
+                carrier=32000, bw=1000, sps=8, 
+                codes=manchester, mod=Mods.MAGNITUDE, 
+                header=HEADER, footer=FOOTER, pktlen=PKTBYTES):
     # Center frequency
     self.sdr.fc = carrier
+
     self.mod = mod
+    self.header = header
+    self.footer = footer
+    self.pktlen = 8*pktlen + len(footer)
 
     decim = Demod.SAMP_RATE/bw/sps
     assert decim == int(decim)
@@ -97,10 +105,10 @@ class Demod:
       codestr = "".join(map(repr, map(int, nc[codeoffset::self.codelen])))
 
       for p in self.tocheck[codeoffset]['pkts']:
-        pkt = p + codestr[0:PKTLEN-len(p)]
-        if len(pkt) < PKTLEN:
+        pkt = p + codestr[0:self.pktlen-len(p)]
+        if len(pkt) < self.pktlen:
           pkts.append(pkt)
-        elif pkt[-len(FOOTER):] == FOOTER:
+        elif pkt[-len(self.footer):] == self.footer:
           str = ""
           for j in range(0,len(pkt)-1,8):
             str += chr(int(pkt[j:j+8][::-1], 2))
@@ -108,18 +116,18 @@ class Demod:
           sys.stdout.flush()
 
       codestr = self.tocheck[codeoffset]['last'] + codestr
-      for ind in find_all(codestr, HEADER):
-        pkt = codestr[ind+len(HEADER):ind+len(HEADER)+PKTLEN]
-        if len(pkt) < PKTLEN:
+      for ind in find_all(codestr, self.header):
+        pkt = codestr[ind+len(self.header):ind+len(self.header)+self.pktlen]
+        if len(pkt) < self.pktlen:
           pkts.append(pkt)
-        elif pkt[-len(FOOTER):] == FOOTER:
+        elif pkt[-len(self.footer):] == self.footer:
           str = ""
           for j in range(0,len(pkt)-1,8):
             str += chr(int(pkt[j:j+8][::-1], 2))
           print str
           sys.stdout.flush()
       self.tocheck[codeoffset]['pkts'] = [] + pkts
-      self.tocheck[codeoffset]['last'] = "" + codestr[-len(HEADER)+1:]
+      self.tocheck[codeoffset]['last'] = "" + codestr[-len(self.header)+1:]
 
   def ddc(self, samp, sdr):
     s = np.asarray(samp)
