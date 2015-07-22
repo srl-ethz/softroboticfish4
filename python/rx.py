@@ -51,6 +51,32 @@ class Demod:
     # I don't think this is used?
     self.sdr.gain = 1
 
+  def run(self, limit=None):
+    self.last = np.zeros(Demod.SAMP_WINDOW)
+    self.index = 0
+
+    self.tocheck = [None] * self.codelen
+    for i in range(self.codelen):
+      self.tocheck[i] = dict()
+      self.tocheck[i]['last'] = ''.join(range(0))
+      self.tocheck[i]['pkts'] = range(0)
+
+    if limit is None:
+      def callback(samp, sdr):
+        if select.select([sys.stdin], [], [], 0)[0]:
+          sdr.cancel_read_async()
+        self.ddc(samp, sdr)
+    else:
+      @limit_calls(limit)
+      def callback(samp, sdr):
+        if select.select([sys.stdin], [], [], 0)[0]:
+          sdr.cancel_read_async()
+        self.ddc(samp, sdr)
+
+    self.sdr.read_bytes_async(callback, Demod.SAMP_WINDOW*2)
+    print self.index, "samples read"
+    sys.stdout.flush()
+
   def bb2c(self, baseband):
     mag = np.abs(baseband)
     phase = np.angle(baseband)
@@ -119,46 +145,10 @@ class Demod:
     nc = codes[self.codelen:self.codelen+self.sampchips]
     self.extract(nc)
 
-    if self.index is not None:
-      self.chips[self.index*self.sampchips:(self.index+1)*self.sampchips] = sig[self.codelen:self.codelen+self.sampchips]
-      self.corrs[self.index*self.sampchips:(self.index+1)*self.sampchips] = corrs[self.codelen:self.codelen+self.sampchips]
-      self.demod[self.index*self.sampchips:(self.index+1)*self.sampchips] = nc #codes[self.codelen:self.codelen+self.sampchips]
-      self.index += 1
+    self.index += 1
 
   def end(self):
     self.sdr.close()
-
-  def run(self, limit=None):
-    self.last = np.zeros(Demod.SAMP_WINDOW)
-    if limit:
-      self.chips = np.zeros(limit * Demod.SAMP_WINDOW / self.decim)
-      self.corrs = np.zeros(limit * Demod.SAMP_WINDOW / self.decim)
-      self.demod = np.zeros(limit * Demod.SAMP_WINDOW / self.decim)
-      self.index = 0
-    else:
-      self.index = None
-
-    self.tocheck = [None] * self.codelen
-    for i in range(self.codelen):
-      self.tocheck[i] = dict()
-      self.tocheck[i]['last'] = ''.join(range(0))
-      self.tocheck[i]['pkts'] = range(0)
-
-    if limit is None:
-      def callback(samp, sdr):
-        if select.select([sys.stdin], [], [], 0)[0]:
-          sdr.cancel_read_async()
-        self.ddc(samp, sdr)
-    else:
-      @limit_calls(limit)
-      def callback(samp, sdr):
-        if select.select([sys.stdin], [], [], 0)[0]:
-          sdr.cancel_read_async()
-        self.ddc(samp, sdr)
-
-    self.sdr.read_bytes_async(callback, Demod.SAMP_WINDOW*2)
-    print self.index, "samples read"
-    sys.stdout.flush()
 
   def plot(self):
     plt.ion()
