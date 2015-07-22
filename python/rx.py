@@ -29,7 +29,18 @@ class Demod:
   SAMP_RATE = 256000.
   SAMP_WINDOW = 1024*40
 
-  def __init__(self, carrier=32000, bw=1000, sps=8, codes=manchester, mod=Mods.MAGNITUDE):
+  def __init__(self):
+    self.sdr = RtlSdr()
+    # Sampling rate
+    self.sdr.rs = Demod.SAMP_RATE
+    # Pins 1 and 2
+    self.sdr.set_direct_sampling(1)
+    # I don't think this is used?
+    self.sdr.gain = 1
+
+  def run(self, limit=None, carrier=32000, bw=1000, sps=8, codes=manchester, mod=Mods.MAGNITUDE):
+    # Center frequency
+    self.sdr.fc = carrier
     self.mod = mod
 
     decim = Demod.SAMP_RATE/bw/sps
@@ -41,17 +52,6 @@ class Demod:
     self.corr = codes2corr(codes, sps)
     self.codelen = len(self.corr[0])
 
-    self.sdr = RtlSdr()
-    # Sampling rate
-    self.sdr.rs = Demod.SAMP_RATE
-    # Pins 1 and 2
-    self.sdr.set_direct_sampling(1)
-    # Center frequency
-    self.sdr.fc = carrier
-    # I don't think this is used?
-    self.sdr.gain = 1
-
-  def run(self, limit=None):
     self.last = np.zeros(Demod.SAMP_WINDOW)
     self.index = 0
 
