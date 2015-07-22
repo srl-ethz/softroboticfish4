@@ -49,6 +49,9 @@ def bitflip(n, bits):
     n >>= 1
   return ind
 
+def codes2list(c):
+  return map(int, "".join(c))
+
 def codes2table(c):
   table = []
   bits = len(bin(len(c)))-3

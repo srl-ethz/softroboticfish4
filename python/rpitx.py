@@ -9,7 +9,7 @@ from gnuradio import eng_notation
 from gnuradio import gr
 from gnuradio.eng_option import eng_option
 from optparse import OptionParser
-from txblocks import ooktx, oqpsktx
+from txblocks import ooktx, oqpsktx, ooktx2
 
 class RPITX(gr.top_block):
     def __init__(self, carrier, samp_rate, bw, amp, block):
