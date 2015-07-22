@@ -108,7 +108,7 @@ class Demod:
         pkt = p + codestr[0:self.pktlen-len(p)]
         if len(pkt) < self.pktlen:
           pkts.append(pkt)
-        elif pkt[-len(self.footer):] == self.footer:
+        elif len(footer) == 0 or pkt[-len(self.footer):] == self.footer:
           str = ""
           for j in range(0,len(pkt)-1,8):
             str += chr(int(pkt[j:j+8][::-1], 2))
@@ -120,7 +120,7 @@ class Demod:
         pkt = codestr[ind+len(self.header):ind+len(self.header)+self.pktlen]
         if len(pkt) < self.pktlen:
           pkts.append(pkt)
-        elif pkt[-len(self.footer):] == self.footer:
+        elif len(footer) == 0 or pkt[-len(self.footer):] == self.footer:
           str = ""
           for j in range(0,len(pkt)-1,8):
             str += chr(int(pkt[j:j+8][::-1], 2))
