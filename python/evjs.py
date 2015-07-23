@@ -1,5 +1,21 @@
 from evdev import InputDevice, categorize, ecodes, list_devices
 
+'''
+288 A
+289 B
+290 X
+291 Y
+292 L
+293 R
+294 select
+295 start
+
+1.1 up
+1.2 down
+0.1 left
+0.2 right
+'''
+
 class KeyEvent:
   def __init__(self):
     self.lastts = None
