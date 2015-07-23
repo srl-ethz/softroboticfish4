@@ -11,6 +11,19 @@ class mintx(gr.top_block):
 
     self.connect((analog_sig_source_x_0, 0), (audio_sink_0, 0))
 
-tx = mintx(carrier=8000)
-tx.start()
-tx.wait()
+MAX_RETRIES = 100
+def tryloop():
+  for i in range(MAX_RETRIES):
+    try:
+      tx = None
+      tx = mintx(carrier=8000)
+      tx.start()
+    except:
+      print "try %d failed" % i
+      del(tx)
+    else:
+      return tx
+
+if __name__ == "__main__":
+  tx = mintx(carrier=8000)
+  tx.start()
