@@ -26,8 +26,8 @@ try:
   while True:
     j.scan()
     #print j
-    tx.send('a_hi' +  j.toString() + 'x')
     leds.go()
+    tx.send('a_hi' +  j.toString() + 'x')
     #time.sleep(delay)
 except KeyboardInterrupt:
   print "Fish control ended."
