@@ -6,7 +6,12 @@ from leds import LEDs
 import time
 import os
 
-os.nice(-20)
+try:
+  # set highest priority
+  os.nice(-20)
+except OSError:
+  # not running as root
+  pass 
 
 print "Initializing hardware..."
 
