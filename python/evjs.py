@@ -58,7 +58,7 @@ class Channel:
     elif key == self.dnkey:
       self.value = max(self.minval, self.value - 1)
 
-  def tobits(self):
+  def toBits(self):
     s = "{:0%db}" % self.bits
     b = s.format(self.value & ((1 << self.bits) - 1))
     return map(int, b)
@@ -78,11 +78,17 @@ class Joystick:
   def __repr__(self):
     return "S: %d, P: %d, Y: %d, T: %d, F: %d" % tuple([x.value for x in self.spytf])
 
-  def tobits(self):
+  def toBits(self):
     bits = []
     for k in self.spytf:
-      bits += k.tobits()
+      bits += k.toBits()
     return encode(bits)
+
+  def toString(self):
+    bits = "".join(map(str, self.toBits()))
+    c1 = chr(int(bits[0:8],2))
+    c2 = chr(int(bits[8:16],2))
+    return c1+c2
 
   def pressed(self, key):
     for k in self.spytf:
@@ -121,6 +127,7 @@ if __name__ == "__main__":
   while True:
     j.scan()
     print repr(j)
-    print j.tobits()
+    print j.toBits()
+    print j.toString()
     time.sleep(0.5)
 
