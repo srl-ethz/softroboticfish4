@@ -29,16 +29,16 @@ def topblock(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1):
     analog_sig_source_x_0 = analog.sig_source_c(samp_rate, analog.GR_COS_WAVE, carrier, 0.2, 0)
     blocks_complex_to_real_0 = blocks.complex_to_real(1)
     stereo = blocks.multiply_const_vff((-1, ))
-    audio_sink_0 = audio.sink(samp_rate, "")
+    self.out = blocks.wavfile_sink("outbits.wav", 2, samp_rate)
 
     ##################################################
     # Connections
     ##################################################
     self.connect((analog_sig_source_x_0, 0), (self.sink, 1))
     self.connect((self.sink, 0), (blocks_complex_to_real_0, 0))
-    self.connect((blocks_complex_to_real_0, 0), (audio_sink_0, 0))
+    self.connect((blocks_complex_to_real_0, 0), (self.out, 0))
     self.connect((blocks_complex_to_real_0, 0), (stereo, 0))
-    self.connect((stereo, 0), (audio_sink_0, 1))
+    self.connect((stereo, 0), (self.out, 1))
 
 def ooktx(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1):
     topblock(self, carrier, samp_rate, bw, amp)

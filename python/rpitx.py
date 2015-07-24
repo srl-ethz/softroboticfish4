@@ -10,6 +10,7 @@ from gnuradio import gr
 from gnuradio.eng_option import eng_option
 from optparse import OptionParser
 from txblocks import ooktx, oqpsktx, ooktx2
+import os
 
 class RPITX(gr.top_block):
     def __init__(self, carrier, samp_rate, bw, amp, block):
@@ -18,9 +19,12 @@ class RPITX(gr.top_block):
     def send(self, txstr):
         bytes = tuple(bytearray(txstr))
         print bytes 
+        self.out.open("outbits.wav")
         self.source.set_data(tuple(bytearray(txstr)), [])
         self.start()
         self.wait()
+        self.out.close()
+        os.system('aplay outbits.wav')
 
 MAX_RETRIES = 100
 def gettx(carrier=32000, samp_rate=192000, bw=1000, amp=1, block=ooktx):
