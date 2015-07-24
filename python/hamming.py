@@ -90,7 +90,11 @@ def setParityBits(bits, i):
 
 def encode(bits):
     paritysAreZero = prepare(bits, 1)
-    return setParityBits(paritysAreZero, 1)
+    s = setParityBits(paritysAreZero, 1)
+    if sum(s)%2 == 1:
+        return s + [1]
+    else:
+        return s + [0]
 
 def decode(bits):
     parityResults = checkParity(bits,power2Below(len(bits)))

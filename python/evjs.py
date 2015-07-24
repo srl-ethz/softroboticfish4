@@ -1,4 +1,5 @@
 from evdev import InputDevice, categorize, ecodes, list_devices
+from hamming import encode
 
 '''
 288 A
@@ -74,14 +75,16 @@ class Joystick:
     self.F = Channel( 0, 3, 2, 288, 291) # A, Y
     self.spytf = (self.S, self.P, self.Y, self.T, self.F)
 
+  def __repr__(self):
+    return "S: %d, P: %d, Y: %d, T: %d, F: %d" % tuple([x.value for x in self.spytf])
+
   def tobits(self):
     bits = []
     for k in self.spytf:
       bits += k.tobits()
-    return bits
+    return encode(bits)
 
   def pressed(self, key):
-    print "pressed ", key
     for k in self.spytf:
       k.press(key)
 
@@ -117,6 +120,7 @@ if __name__ == "__main__":
   j = Joystick()
   while True:
     j.scan()
+    print repr(j)
     print j.tobits()
     time.sleep(0.5)
 
