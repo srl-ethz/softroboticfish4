@@ -29,7 +29,7 @@ def topblock(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1):
     analog_sig_source_x_0 = analog.sig_source_c(samp_rate, analog.GR_COS_WAVE, carrier, 1.0, 0)
     blocks_complex_to_real_0 = blocks.complex_to_real(1)
     stereo = blocks.multiply_const_vff((-1, ))
-    self.out = blocks.wavfile_sink("outbits.wav", 2, samp_rate)
+    self.out = blocks.wavfile_sink("/tmp/outbits.wav", 2, samp_rate)
 
     ##################################################
     # Connections
@@ -67,7 +67,7 @@ def ooktx2(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1):
     # Blocks
     ##################################################
     blocks_packed_to_unpacked_xx_0 = blocks.packed_to_unpacked_bb(1, gr.GR_LSB_FIRST)
-    digital_chunks_to_symbols_xx_0 = digital.chunks_to_symbols_bc((codes.codes2list(codes.mycode)), 2)
+    digital_chunks_to_symbols_xx_0 = digital.chunks_to_symbols_bc((codes.codes2list(codes.mycode)), len(codes.mycode[0]))
 
     blocks_repeat_0 = blocks.repeat(gr.sizeof_gr_complex*1, samp_rate/bw)
     

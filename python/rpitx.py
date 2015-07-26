@@ -19,12 +19,12 @@ class RPITX(gr.top_block):
     def send(self, txstr):
         bytes = tuple(bytearray(txstr))
         #print bytes 
-        self.out.open("outbits.wav")
+        self.out.open("/tmp/outbits.wav")
         self.source.set_data(tuple(bytearray(txstr)), [])
         self.start()
         self.wait()
         self.out.close()
-        os.system('aplay -q outbits.wav')
+        os.system('aplay -q /tmp/outbits.wav')
 
 MAX_RETRIES = 100
 def gettx(carrier=32000, samp_rate=192000, bw=1000, amp=1, block=ooktx):
