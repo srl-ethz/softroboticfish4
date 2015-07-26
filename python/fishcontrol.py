@@ -22,12 +22,14 @@ leds = LEDs(j)
 print "Fish control started."
 
 delay = 0.2
+count = 1
 try:
   while True:
     j.scan()
     #print j
-    leds.go()
+    leds.go(count)
     tx.send('a_hi' +  j.toString() + 'x')
+    count += 1
     #time.sleep(delay)
 except KeyboardInterrupt:
   print "Fish control ended."

@@ -19,7 +19,6 @@ LEDs:
 class LEDs:
   def __init__(self, j=None):
     self.j = j
-    self.count = 0
     self.strip = apa102.APA102(11)
     self.strip.clearStrip()
 
@@ -33,16 +32,14 @@ class LEDs:
     else:
       self.strip.setPixelRGB(pixel, 0)
 
-  def go(self):
-    self.count += 1
-
-    if self.count % 4 < 2:
-      self.strip.setPixelRGB(0, 0xffffff)
+  def go(self, count, color=0xffffff):
+    if count % 4 < 2:
+      self.strip.setPixelRGB(0, color)
     else:
       self.strip.setPixelRGB(0, 0)
 
-    if (self.count-1) % 4 < 2:
-      self.strip.setPixelRGB(1, 0xffffff)
+    if (count-1) % 4 < 2:
+      self.strip.setPixelRGB(1, color)
     else:
       self.strip.setPixelRGB(1, 0)
 
