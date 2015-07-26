@@ -11,7 +11,7 @@ print "Loading modules (2)..."
 
 from rpitx import gettx, oqpsktx, ooktx2
 import time
-import os
+import os, sys, select
 
 try:
   # set highest priority
@@ -30,15 +30,20 @@ print "Fish control started."
 
 delay = 0.2
 count = 1
+loop = True
+
 try:
-  while True:
+  while loop:
     j.scan()
     #print j
     leds.go(count)
-    tx.send('a_hi' +  j.toString() + 'x')
+    tx.send('a_h' + chr(count & 0xff) + j.toString() + 'x')
     count += 1
+    if select.select([sys.stdin], [], [], 0)[0]:
+      loop = False
     #time.sleep(delay)
 except KeyboardInterrupt:
-  print "Fish control ended."
-  leds.end()
-  
+  pass
+
+print "Fish control ended."
+leds.end()
