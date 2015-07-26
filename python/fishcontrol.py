@@ -9,7 +9,7 @@ leds = LEDs(j)
 leds.go(1, color=0xffaa00)
 print "Loading modules (2)..."
 
-from rpitx import gettx, oqpsktx, ooktx2
+from rpitx import gettx, oqpsktx, ooktx2, ooktx
 import time
 import os, sys, select
 
@@ -23,7 +23,9 @@ except OSError:
 leds.go(1, color=0xffaa)
 print "Initializing hardware..."
 
-tx = gettx(carrier=32000, bw=1000, samp_rate=192000, block=oqpsktx)
+tx = gettx(carrier=32000, bw=1000, samp_rate=192000)
+#tx = gettx(carrier=32000, bw=1000, samp_rate=192000, block=ooktx2)
+#tx = gettx(carrier=32000, bw=1000, samp_rate=192000, block=oqpsktx)
 
 leds.go(1, color=0xff00)
 print "Fish control started."
