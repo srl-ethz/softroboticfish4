@@ -1,8 +1,9 @@
 #!/bin/python
+from __future__ import print_function
 
 import numpy as np
 from rtlsdr import RtlSdr, limit_calls
-from codes import manchester, codes154, codes2corr
+from codes import manchester, mycode, codes154, codes2corr
 import matplotlib.pyplot as plt
 
 import sys, select
@@ -39,7 +40,7 @@ class Demod:
     # I don't think this is used?
     self.sdr.gain = 1
 
-  def run(self, limit=None, 
+  def run(self, limit=None, callback=lambda x: print(x),
                 carrier=32000, bw=1000, sps=8, 
                 codes=manchester, mod=Mods.MAGNITUDE, 
                 header=HEADER, footer=FOOTER, pktlen=PKTBYTES):
@@ -50,6 +51,8 @@ class Demod:
     self.header = header
     self.footer = footer
     self.pktlen = 8*pktlen + len(footer)
+
+    self.rxcallback = callback
 
     decim = Demod.SAMP_RATE/bw/sps
     assert decim == int(decim)
@@ -70,19 +73,19 @@ class Demod:
       self.tocheck[i]['pkts'] = range(0)
 
     if limit is None:
-      def callback(samp, sdr):
+      def byte_callback(samp, sdr):
         if select.select([sys.stdin], [], [], 0)[0]:
           sdr.cancel_read_async()
         self.ddc(samp, sdr)
     else:
       @limit_calls(limit)
-      def callback(samp, sdr):
+      def byte_callback(samp, sdr):
         if select.select([sys.stdin], [], [], 0)[0]:
           sdr.cancel_read_async()
         self.ddc(samp, sdr)
 
-    self.sdr.read_bytes_async(callback, Demod.SAMP_WINDOW*2)
-    print self.index, "samples read"
+    self.sdr.read_bytes_async(byte_callback, Demod.SAMP_WINDOW*2)
+    print (self.index, "samples read")
     sys.stdout.flush()
 
   def bb2c(self, baseband):
@@ -99,12 +102,12 @@ class Demod:
     codes = np.argmax(np.array(corrs), 0)
     return maxes, codes
 
-  def debounce(self, i, l, str):
+  def debounce(self, i, l, rxstr):
     try:
       if i != self.debounce_i or abs(l - self.debounce_l) > 1:
-        print str
+        self.rxcallback(rxstr)
     except AttributeError:
-      print str
+      self.rxcallback(rxstr)
     self.debounce_i = i
     self.debounce_l = l
 
@@ -204,7 +207,8 @@ def chipsToString(bits):
       rxstr += chr(char)
       char = 0
   return rxstr, char
-  
+
 if __name__ == "__main__":
   d = Demod()
-  d.run(carrier=32000, bw=1000, sps=1, codes=manchester)
+  #d.run(carrier=32000, bw=1000, sps=1, codes=manchester)
+  d.run(carrier=32000, bw=1000, sps=1, mod=Mods.DPHASE, codes=mycode)
