@@ -23,26 +23,25 @@ except OSError:
 leds.go(1, color=0xffaa)
 print "Initializing hardware..."
 
-tx = gettx(carrier=32000, bw=1000, samp_rate=192000)
+#tx = gettx(carrier=32000, bw=1000, samp_rate=192000)
 #tx = gettx(carrier=32000, bw=1000, samp_rate=192000, block=ooktx2)
-#tx = gettx(carrier=32000, bw=1000, samp_rate=192000, block=oqpsktx)
+tx = gettx(carrier=32000, bw=1000, samp_rate=192000, block=oqpsktx)
 
 leds.go(1, color=0xff00)
 print "Fish control started."
 
 delay = 0.2
 count = 1
-loop = True
 
 try:
-  while loop:
+  for i in range(255):
     j.scan()
     #print j
     leds.go(count)
     tx.send('a_h' + chr(count & 0xff) + j.toString() + 'x')
     count += 1
     if select.select([sys.stdin], [], [], 0)[0]:
-      loop = False
+      break
     #time.sleep(delay)
 except KeyboardInterrupt:
   pass
