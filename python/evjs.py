@@ -86,7 +86,7 @@ class Joystick:
     for k in self.spytf:
       val = int("".join(map(str, bits[index:index + k.bits])), 2)
       if val > 3:
-        val = 8 - val
+        val = val - 8
       k.value = val
       index += k.bits
     

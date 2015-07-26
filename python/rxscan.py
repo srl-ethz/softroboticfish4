@@ -12,7 +12,7 @@ def callback(rxstr):
   parity = sum(bits) % 2
   data, error = hamming.decode(bits[:-1])
 
-  print count, data, error, parity
+  #print count, data, error, parity
   j.setBits(data)
   if parity == 0 and error == 0:
     color = 0xffffff
@@ -28,3 +28,4 @@ d.run(carrier=32000, bw=1000, sps=1, mod=rx.Mods.MAGNITUDE, codes=codes.manchest
 #d.run(carrier=32000, bw=1000, sps=1, mod=rx.Mods.MAGNITUDE, codes=codes.mycode, callback=callback)
 #d.run(carrier=32000, bw=1000, sps=1, mod=rx.Mods.DPHASE, codes=codes.mycode, callback=callback)
 
+l.end()
