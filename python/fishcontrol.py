@@ -1,8 +1,15 @@
-print "Loading modules..."
+print "Loading modules (1)..."
 
 from evjs import Joystick
-from rpitx import gettx, oqpsktx, ooktx2
 from leds import LEDs
+
+j = Joystick()
+leds = LEDs(j)
+
+leds.go(1, color=0xffaa00)
+print "Loading modules (2)..."
+
+from rpitx import gettx, oqpsktx, ooktx2
 import time
 import os
 
@@ -13,12 +20,12 @@ except OSError:
   # not running as root
   pass 
 
+leds.go(1, color=0xffaa)
 print "Initializing hardware..."
 
-j = Joystick()
 tx = gettx(carrier=32000, bw=1000, samp_rate=192000, block=oqpsktx)
-leds = LEDs(j)
 
+leds.go(1, color=0xff00)
 print "Fish control started."
 
 delay = 0.2
