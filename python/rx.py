@@ -136,7 +136,7 @@ class Demod:
           str = ""
           for j in range(0,len(pkt)-1,8):
             str += chr(int(pkt[j:j+8][::-1], 2))
-          self.debounce(self.index, -len(p), str)
+          self.debounce(self.index, ind, str)
           sys.stdout.flush()
       self.tocheck[codeoffset]['pkts'] = [] + pkts
       self.tocheck[codeoffset]['last'] = "" + codestr[-len(self.header)+1:]
