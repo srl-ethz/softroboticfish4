@@ -64,9 +64,12 @@ class Channel:
     return map(int, b)
 
 class Joystick:
-  def __init__(self, device=0):
+  def __init__(self, device=0, fake=False):
     self.keys = {}
-    self.dev = InputDevice(list_devices()[device])
+    if fake:
+      self.dev = None
+    else:
+      self.dev = InputDevice(list_devices()[device])
 
     self.S = Channel( 0, 1, 1, 295, 294) # select, start
     self.P = Channel(-3, 3, 3, 1.1, 1.2) # up, down
@@ -78,6 +81,15 @@ class Joystick:
   def __repr__(self):
     return "S: %d, P: %d, Y: %d, T: %d, F: %d" % tuple([x.value for x in self.spytf])
 
+  def setBits(self, bits):
+    index = 0
+    for k in self.spytf:
+      val = int("".join(map(str, bits[index:index + k.bits])), 2)
+      if val > 3:
+        val = 8 - val
+      k.value = val
+      index += k.bits
+    
   def toBits(self):
     bits = []
     for k in self.spytf:

@@ -101,13 +101,13 @@ def decode(bits):
     n = bitsToNumber(parityResults)
 
     if n != 0:
-        print "NB: bit ", n, " is bad. Flipping."
+        #print "NB: bit ", n, " is bad. Flipping."
 
         # WARNING!!! Destructive update!
         #
         bits[n - 1] = 1 - bits[n - 1]
 
-    return extractData(bits,1)
+    return extractData(bits,1), n
 
 # extractData gathers the bits in non-parity positions.
 #
