@@ -24,8 +24,8 @@ def callback(rxstr):
   l.go(count, color)
   
 d = rx.Demod()
-d.run(carrier=32000, bw=1000, sps=1, mod=rx.Mods.MAGNITUDE, codes=codes.manchester, callback=callback)
+#d.run(carrier=32000, bw=100, sps=1, mod=rx.Mods.MAGNITUDE, codes=codes.manchester, callback=callback)
 #d.run(carrier=32000, bw=1000, sps=1, mod=rx.Mods.MAGNITUDE, codes=codes.mycode, callback=callback)
-#d.run(carrier=32000, bw=1000, sps=1, mod=rx.Mods.DPHASE, codes=codes.mycode, callback=callback)
+d.run(carrier=32000, bw=500, sps=1, mod=rx.Mods.DPHASE, codes=codes.mycode, callback=callback)
 
 l.end()
