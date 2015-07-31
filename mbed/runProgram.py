@@ -7,14 +7,17 @@ import serialMonitor
 def runProgram(argv):
     copyBin = raw_input('Copy program from downloads folder? (y/n): ').strip().lower() == 'y'
     if copyBin:
-        p = os.popen('rm /media/MBED/*.bin', "r")
-        p.readline()
+        print 'Copying bin file...'
+        os.system('rm /media/MBED/*.bin')
+        time.sleep(0.5)
+        os.system('cp /home/pi/Downloads/*.bin /media/MBED')
         time.sleep(1)
-        p = os.popen('cp /home/pi/Downloads/* /media/MBED', "r")
-        p.readline()
-        time.sleep(4)
-        
+    print 'Remounting mbed...'
+    os.system("sudo /home/pi/fish/mbed/remountMbed.sh")
+    print 'Resetting mbed and starting serial monitor'
+    print ''
     resetMbed.reset()
+    print '============'
     serialMonitor.run(argv)
 
 if __name__ == '__main__':
