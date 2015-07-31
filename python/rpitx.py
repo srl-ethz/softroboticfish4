@@ -24,7 +24,8 @@ class RPITX(gr.top_block):
         self.start()
         self.wait()
         self.out.close()
-        os.system('aplay -q /tmp/outbits.wav')
+        print "calling aplay on outbits.wav"
+	os.system('aplay -q /tmp/outbits.wav')
 
 MAX_RETRIES = 100
 def gettx(carrier=32000, samp_rate=192000, bw=1000, amp=1, block=ooktx):

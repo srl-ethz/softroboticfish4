@@ -48,7 +48,6 @@ def ooktx(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1):
     ##################################################
     blocks_packed_to_unpacked_xx_0 = blocks.packed_to_unpacked_bb(1, gr.GR_LSB_FIRST)
     digital_chunks_to_symbols_xx_0 = digital.chunks_to_symbols_bc(([0,1,1,0]), 2)
-
     blocks_repeat_0 = blocks.repeat(gr.sizeof_gr_complex*1, samp_rate/bw)
     
     ##################################################
@@ -57,7 +56,6 @@ def ooktx(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1):
     self.connect((self.source, 0), (blocks_packed_to_unpacked_xx_0, 0))
     self.connect((blocks_packed_to_unpacked_xx_0, 0), (digital_chunks_to_symbols_xx_0, 0))
     self.connect((digital_chunks_to_symbols_xx_0, 0), (blocks_repeat_0, 0))
-
     self.connect((blocks_repeat_0, 0), (self.sink, 0))
 
 def ooktx2(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1):
@@ -68,7 +66,6 @@ def ooktx2(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1):
     ##################################################
     blocks_packed_to_unpacked_xx_0 = blocks.packed_to_unpacked_bb(1, gr.GR_LSB_FIRST)
     digital_chunks_to_symbols_xx_0 = digital.chunks_to_symbols_bc((codes.codes2list(codes.mycode)), len(codes.mycode[0]))
-
     blocks_repeat_0 = blocks.repeat(gr.sizeof_gr_complex*1, samp_rate/bw)
     
     ##################################################
@@ -77,7 +74,6 @@ def ooktx2(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1):
     self.connect((self.source, 0), (blocks_packed_to_unpacked_xx_0, 0))
     self.connect((blocks_packed_to_unpacked_xx_0, 0), (digital_chunks_to_symbols_xx_0, 0))
     self.connect((digital_chunks_to_symbols_xx_0, 0), (blocks_repeat_0, 0))
-
     self.connect((blocks_repeat_0, 0), (self.sink, 0))
 
 CODE_LIST = codes.mycode
