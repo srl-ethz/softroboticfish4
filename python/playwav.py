@@ -20,7 +20,8 @@ print 'About to play ' + filename + " " + str(count) + " times..."
 try:
 	for i in range(count):
 		print "\tplaying\t" + str(i)
-		os.system("aplay -q " + filename)
+		if os.system("aplay -q " + filename) != 0:
+                        raise KeyboardInterrupt
 		time.sleep(delay/1000)
 except KeyboardInterrupt:
 	print '\nDone!'
