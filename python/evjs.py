@@ -90,11 +90,23 @@ class Joystick:
       k.value = val
       index += k.bits
     
-  def toBits(self):
+  def toBits(self, encodeData=True):
     bits = []
     for k in self.spytf:
       bits += k.toBits()
-    return encode(bits)
+    if encodeData:
+      return encode(bits)
+    else:
+      return bits
+
+  def toStateNum(self):
+    stateNum = self.S.value
+    stateNum += (self.P.value + 3) << 1
+    stateNum += (self.Y.value + 3) << 4
+    stateNum += (self.T.value) << 7
+    stateNum += (self.F.value) << 9
+
+    return stateNum
 
   def toString(self):
     bits = "".join(map(str, self.toBits()))
