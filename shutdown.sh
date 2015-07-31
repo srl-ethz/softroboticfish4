@@ -1,6 +1,4 @@
-echo "Unmounting mbed"
-sudo umount /media/MBED
-sudo rm /media/MBED/*
-sudo rm /media/MBED
+sudo /home/pi/fish/mbed/unmountMbed.sh
 echo "Shutting down"
 sudo shutdown -h now
+

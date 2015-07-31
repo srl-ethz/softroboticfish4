@@ -1,7 +1,13 @@
 import RPi.GPIO as GPIO
 import time
+import sys
 
 resetPin = 3 # BCM pin 3, actually pin 5
+
+hold = False
+for arg in sys.argv:
+    if 'hold' in arg:
+        hold = True
 
 def reset():
     # set up the pin as output
@@ -12,10 +18,11 @@ def reset():
     # reset the mbed
     GPIO.output(resetPin, GPIO.LOW)
     time.sleep(0.5)
-    GPIO.output(resetPin, GPIO.HIGH)
+    if not hold:
+        GPIO.output(resetPin, GPIO.HIGH)
 
-    # clean up
-    GPIO.cleanup()
+        # clean up
+        GPIO.cleanup()
 
 if __name__ == '__main__':
     reset()
