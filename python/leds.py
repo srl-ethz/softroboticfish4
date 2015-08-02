@@ -21,6 +21,8 @@ class LEDs:
     self.j = j
     self.strip = apa102.APA102(11)
     self.strip.clearStrip()
+    self.heartbeatBrightness = 1
+    self.heartbeatIncreasing = True
 
   def setvalue(self, pixel, value):
     if value == 3:
@@ -30,18 +32,25 @@ class LEDs:
     elif value == 1:
       self.strip.setPixelRGB(pixel, 0xff)
     else:
-      self.strip.setPixelRGB(pixel, 0)
+      self.strip.setPixel(pixel, 2, 2, 2)
 
-  def go(self, count, color=0xffffff):
-    if count % 4 < 2:
-      self.strip.setPixelRGB(0, color)
-    else:
-      self.strip.setPixelRGB(0, 0)
+  def go(self, count, color=0xffffff, heartbeat=True):
+    if heartbeat:
+      #if count % 4 < 2:
+      #  self.strip.setPixelRGB(0, color)
+      #else:
+      #  self.strip.setPixelRGB(0, 0)
 
-    if (count-1) % 4 < 2:
-      self.strip.setPixelRGB(1, color)
-    else:
-      self.strip.setPixelRGB(1, 0)
+      #if (count-1) % 4 < 2:
+      #  self.strip.setPixelRGB(1, color)
+      #else:
+      #  self.strip.setPixelRGB(1, 0)
+      self.strip.setPixel(0, 0, 0, self.heartbeatBrightness)
+      self.heartbeatBrightness += 2 * (1 if self.heartbeatIncreasing else -1)
+      if self.heartbeatBrightness > 15:
+        self.heartbeatIncreasing = False
+      if self.heartbeatBrightness < (2+1):
+        self.heartbeatIncreasing = True
 
     self.setvalue(2, self.j.T.value)
     self.setvalue(3, self.j.F.value)
