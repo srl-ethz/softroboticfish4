@@ -1,7 +1,7 @@
 #!/bin/sh
 
 echo "--- killing existing fish processes"
-sudo ps -ef | grep "fish" | awk '{print $2}' | xargs sudo kill
+sudo ps -ef | grep "fish/python" | awk '{print $2}' | xargs sudo kill
 
 echo "--- removing state files"
 sudo rm /home/pi/fish/python/fishAlive.txt*
