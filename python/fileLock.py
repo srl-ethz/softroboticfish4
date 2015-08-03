@@ -35,7 +35,7 @@ def acquireLock(filename, waitTime = 0.05, timeout=None):
     timeout = timeout/waitTime;
   count = 0
   while not lockFile(filename):
-    time.sleep(0.05)
+    time.sleep(waitTime)
     count += 1
     if timeout is not None and count > timeout:
       return False

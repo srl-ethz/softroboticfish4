@@ -1,8 +1,9 @@
 
 import fileLock
 import time
+import os
 
-interWordDelay = 2
+interWordDelay = 200
 
 fishFileStatePending = 'fishStatePending.txt'
 fishFileStateCurrent = 'fishStateCurrent.txt'
@@ -12,28 +13,38 @@ curState = 0
 try:
   while(True):
     # Read pending state
-    fileLock.acquireLock(fishFileStatePending)
+    fileLock.acquireLock(fishFileStatePending, waitTime=0.05)
     fin = open(fishFileStatePending, 'r')
-    stateNum = int(fin.read())
+    try:
+      stateNum = int(fin.read())
+    except:
+      stateNum = None
     fin.close()
     fileLock.releaseLock(fishFileStatePending)
     
     # Play the wav file to send the new state
-    wavFile = 'wav_files_20bps/' + '{0:04d}'.format(stateNum) + '.wav'
-    if stateNum != curState:
-      print 'playing new state:', stateNum
-      curState = stateNum
-    #if os.system("aplay -q " + wavFile) != 0:
-    #  raise KeyboardInterrupt
+    if stateNum is not None:
+      wavFile = '/home/pi/fish/python/wav_files_20bps/' + '{0:04d}'.format(stateNum) + '.wav'
+      if stateNum != curState:
+        print 'playing new state:', stateNum
+        curState = stateNum
+      if os.system("aplay -q " + wavFile) != 0:
+        print '*** aplay command terminated'
+        raise KeyboardInterrupt
+    else:
+      print '*** No pending state! ***'
 
     # Write the current state
     fileLock.acquireLock(fishFileStateCurrent)
     fout = open(fishFileStateCurrent, 'w')
-    fout.write(str(stateNum))
+    if stateNum is not None:
+      fout.write(str(stateNum))
+    else:
+      fout.write(str(-1))
     fout.close()
     fileLock.releaseLock(fishFileStateCurrent)
 
-    time.sleep(interWordDelay)
+    time.sleep(interWordDelay/1000)
         
 except KeyboardInterrupt:
   pass

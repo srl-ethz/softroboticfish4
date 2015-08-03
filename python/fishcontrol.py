@@ -75,7 +75,7 @@ try:
     # Get state index and write it to file
     stateNum = j.toStateNum()
     fileLock.acquireLock(fishFileStatePending)
-    fout = open(fishFileStatePending, 'w')
+    fout = open(fishFileStatePending, 'w+')
     fout.write(str(stateNum))
     fout.close()
     fileLock.releaseLock(fishFileStatePending)
