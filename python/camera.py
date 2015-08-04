@@ -62,11 +62,13 @@ class FishCamera:
 if (__name__=="__main__"): # for debugging purposes when running just this file
 	print 'Code is running'
         with FishCamera() as fishCam:
-            print 'initialized'
+            print 'taking video'
             #fishCam.start_preview()
-            #fishCam.take_video()
-            fishCam.take_picture()
-            #time.sleep(5)
-            #fishCam.stop_video()
+            fishCam.take_video()
+            #fishCam.take_picture()
+            time.sleep(60)
+            fishCam.stop_video()
+            print 'stopped taking video'
+            
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
