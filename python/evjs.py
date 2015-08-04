@@ -1,5 +1,7 @@
 from evdev import InputDevice, categorize, ecodes, list_devices
 from hamming import encode
+import time
+import traceback
 
 '''
 288 A
@@ -23,6 +25,7 @@ class KeyEvent:
     self.lastval = None
     self.totalts = 0
     self.numpush = 0
+    self.lastPushTime = -1
 
   def update(self, event):
     retval = False
@@ -30,12 +33,20 @@ class KeyEvent:
     if event.type == ecodes.EV_ABS:
       value = 0 if abs(event.value - 127)<10 else 1
 
-    if self.lastts and self.lastval == 1 and value == 0:
+    timeSincePush = time.time()*1000.0-self.lastPushTime # ms since button was pressed
+                                                         # will filter out spurious presses
+                                                         # (which show as button presses less than 1 ms long)
+    if self.lastts and self.lastval > 0 and value == 0 and timeSincePush > 50:
       self.numpush += 1
       self.totalts += event.timestamp() - self.lastts
       retval = True
+      #print time.time()*1000.0-self.lastpushtime
 
-    self.lastval = value
+    if value == 0:
+      self.lastval = 0
+    else:
+      self.lastval = 1
+      self.lastPushTime = time.time()*1000.0
     self.lastts = event.timestamp()
     return retval
 
@@ -77,6 +88,14 @@ class Joystick:
     self.T = Channel( 0, 3, 2, 290, 289) # X, B
     self.F = Channel( 0, 3, 2, 288, 291) # A, Y
     self.spytf = (self.S, self.P, self.Y, self.T, self.F)
+
+    # Create keys that aren't created automatically on startup
+    self.keys[290] = KeyEvent()
+    self.keys[288] = KeyEvent()
+    self.keys[291] = KeyEvent()
+    self.keys[289] = KeyEvent()
+    self.keys[295] = KeyEvent()
+    self.keys[294] = KeyEvent()
 
   def __repr__(self):
     return "S: %d, P: %d, Y: %d, T: %d, F: %d" % tuple([x.value for x in self.spytf])
@@ -141,6 +160,7 @@ class Joystick:
               self.pressed(key)
           except KeyError:
             self.keys[key] = KeyEvent()
+            #print traceback.format_exc()
     except IOError:
       pass
 

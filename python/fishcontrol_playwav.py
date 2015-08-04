@@ -11,6 +11,13 @@ fishFileStateCurrent = 'fishStateCurrent.txt'
 curState = 0
 
 try:
+  # set highest priority
+  os.nice(-20)
+except OSError:
+  # not running as root
+  pass
+
+try:
   while(True):
     # Read pending state
     fileLock.acquireLock(fishFileStatePending, waitTime=0.05)

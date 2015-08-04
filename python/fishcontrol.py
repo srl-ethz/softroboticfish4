@@ -9,7 +9,7 @@ import time
 j = Joystick()
 leds = LEDs(j)
 
-delay = 0.1
+delay = 0.25
 count = 1
 fishFileStatePending = 'fishStatePending.txt'
 fishFileStateCurrent = 'fishStateCurrent.txt'
@@ -82,7 +82,11 @@ try:
     # See if fish has received this state yet
     fileLock.acquireLock(fishFileStateCurrent)
     fin = open(fishFileStateCurrent, 'r')
-    curState = int(fin.read())
+    try:
+      curState = int(fin.read())
+    except:
+      print '*** fishcontrol read bad currentState from file'
+      curState = -1
     fin.close()
     fileLock.releaseLock(fishFileStateCurrent)
     if curState == stateNum:

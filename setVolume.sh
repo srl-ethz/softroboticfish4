@@ -19,13 +19,13 @@ contains() {
 #contains "abcd" "d" && echo "abcd does not contain e"
 
 
-VOLUME=178
+VOLUME=165 # Default volume
 if [ "$#" -eq 1 ]; then
   VOLUME=$1
   PERCENT=1
-  contains "$1" "%" && VOLUME=`echo $VOLUME | cut -b 1-2` && VOLUME=$((VOLUME*215/100))
+  contains "$1" "%" && VOLUME=`echo $VOLUME | cut -b 1-2` && VOLUME=$((VOLUME*255/100))
   echo "VOLUME" $VOLUME
 fi
 
 echo "Setting volume to" $VOLUME "("$((VOLUME*100/215))"%)"
-amixer -c 0 set PCM $VOLUME
+amixer -c 0 set Digital $VOLUME

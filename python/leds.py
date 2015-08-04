@@ -45,11 +45,11 @@ class LEDs:
       #  self.strip.setPixelRGB(1, color)
       #else:
       #  self.strip.setPixelRGB(1, 0)
-      self.strip.setPixel(0, 0, 0, self.heartbeatBrightness)
-      self.heartbeatBrightness += 2 * (1 if self.heartbeatIncreasing else -1)
-      if self.heartbeatBrightness > 15:
+      self.strip.setPixel(0, 0, max(15-self.heartbeatBrightness,0), self.heartbeatBrightness)
+      self.heartbeatBrightness += 5 * (1 if self.heartbeatIncreasing else -1)
+      if self.heartbeatBrightness > 30:
         self.heartbeatIncreasing = False
-      if self.heartbeatBrightness < (2+1):
+      if self.heartbeatBrightness < (5+1):
         self.heartbeatIncreasing = True
 
     self.setvalue(2, self.j.T.value)

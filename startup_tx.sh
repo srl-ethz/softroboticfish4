@@ -8,6 +8,14 @@ sudo rm /home/pi/fish/python/fishAlive.txt*
 sudo rm /home/pi/fish/python/fishStateCurrent*
 sudo rm /home/pi/fish/python/fishStatePending*
 
+echo "--- creating log files"
+heartbeatlog="/home/pi/fish/heartbeat_out.txt"
+fishcontrollog="/home/pi/fish/fishcontrol_out.txt"
+fishcontrolplaywavlog="/home/pi/fish/fishcontrol_playwav_out.txt"
+touch $heartbeatlog
+touch $fishcontrollog
+touch $fishcontrolplaywavlog
+
 echo "--- starting master heartbeat"
 sudo python /home/pi/fish/python/heartbeat_pi_nofish.py &
 sleep 5

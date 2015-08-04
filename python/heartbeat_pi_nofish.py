@@ -39,7 +39,7 @@ class Heartbeat:
     increasing = True
     count = 0
     controllerRunning = True
-    checkInterval = 1500
+    checkInterval = 3000
     delay = 75
     print 'running'
     try:
@@ -54,7 +54,7 @@ class Heartbeat:
           count = 0
         # If not running, show heartbeat
         if not controllerRunning:
-          self.leds.setPixel(0, brightness, 0, 0)
+          self.leds.setPixel(0, 25, 0, brightness/2)
           self.leds.show()
           brightness += increment * (1 if increasing else -1)
           if brightness > 20:
@@ -67,6 +67,13 @@ class Heartbeat:
       fileLock.releaseLock(self.fishFile)
 
 if __name__ == '__main__':
+  try:
+    # increase priority
+    os.nice(-5)
+  except OSError:
+    # not running as root
+    pass
+
   heartbeat = Heartbeat()
   heartbeat.run()
     
