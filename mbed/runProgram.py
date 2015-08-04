@@ -6,6 +6,7 @@ import serialMonitor
 
 def runProgram(argv):
     # If a bin file was given as argument, program it onto the mbed
+    remount = True
     for arg in argv:
         if '.bin' in arg:
             print 'Copying bin file...'
@@ -14,8 +15,11 @@ def runProgram(argv):
             #os.system('sudo cp /home/pi/Downloads/*.bin /media/MBED')
             #time.sleep(1)
             os.system('sudo /home/pi/fish/mbed/programMbed.sh ' + arg)
+        if 'remount' in arg:
+            remount=int(arg.strip())==1
     # Remount mbed
-    os.system("sudo /home/pi/fish/mbed/remountMbed.sh")
+    if remount:
+        os.system("sudo /home/pi/fish/mbed/remountMbed.sh")
     # Start mbed program and serial monitor
     print 'Resetting mbed and starting serial monitor'
     print ''
