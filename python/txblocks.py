@@ -24,9 +24,8 @@ def topblock(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1):
 
     self.source = blocks.vector_source_b((0,0), False, 1, [])
 
-    #XXX Hack: 0.07 should actually be parameter amp, but RPI crashes
     self.sink = blocks.multiply_vcc(1)
-    analog_sig_source_x_0 = analog.sig_source_c(samp_rate, analog.GR_COS_WAVE, carrier, 1.0, 0)
+    analog_sig_source_x_0 = analog.sig_source_c(samp_rate, analog.GR_COS_WAVE, carrier, amp, 0)
     blocks_complex_to_real_0 = blocks.complex_to_real(1)
     stereo = blocks.multiply_const_vff((-1, ))
     self.out = blocks.wavfile_sink("/tmp/outbits.wav", 2, samp_rate)
@@ -40,7 +39,7 @@ def topblock(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1):
     self.connect((blocks_complex_to_real_0, 0), (stereo, 0))
     self.connect((stereo, 0), (self.out, 1))
 
-def ooktx(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1):
+def ooktx(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1, **kwargs):
     topblock(self, carrier, samp_rate, bw, amp)
 
     ##################################################
@@ -58,14 +57,14 @@ def ooktx(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1):
     self.connect((digital_chunks_to_symbols_xx_0, 0), (blocks_repeat_0, 0))
     self.connect((blocks_repeat_0, 0), (self.sink, 0))
 
-def ooktx2(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1):
+def ooktx2(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1, code=codes.mycode, balanced=False, **kwargs):
     topblock(self, carrier, samp_rate, bw, amp)
 
     ##################################################
     # Blocks
     ##################################################
     blocks_packed_to_unpacked_xx_0 = blocks.packed_to_unpacked_bb(1, gr.GR_LSB_FIRST)
-    digital_chunks_to_symbols_xx_0 = digital.chunks_to_symbols_bc((codes.codes2list(codes.mycode)), len(codes.mycode[0]))
+    digital_chunks_to_symbols_xx_0 = digital.chunks_to_symbols_bc((codes.codes2list(code, balanced)), len(code[0]))
     blocks_repeat_0 = blocks.repeat(gr.sizeof_gr_complex*1, samp_rate/bw)
     
     ##################################################
@@ -76,18 +75,17 @@ def ooktx2(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1):
     self.connect((digital_chunks_to_symbols_xx_0, 0), (blocks_repeat_0, 0))
     self.connect((blocks_repeat_0, 0), (self.sink, 0))
 
-CODE_LIST = codes.mycode
-CODE_TABLE, CODE_LEN = codes.codes2table(CODE_LIST), len(CODE_LIST)
-CHUNK_LEN = int(log(CODE_LEN,2))
+def oqpsktx(self, carrier=10000, samp_rate = 80000, bw=4000, amp=1, code=codes.mycode, **kwargs):
+    code_table, code_len = codes.codes2table(code), len(code)
+    chunk_len = int(log(code_len,2))
 
-def oqpsktx(self, carrier=10000, samp_rate = 80000, bw=4000, amp=1):
     topblock(self, carrier, samp_rate, bw, amp)
 
     ##################################################
     # Blocks
     ##################################################
-    self.blocks_packed_to_unpacked_xx_0 = blocks.packed_to_unpacked_bb(CHUNK_LEN, gr.GR_LSB_FIRST)
-    self.digital_chunks_to_symbols_xx_0 = digital.chunks_to_symbols_bc((CODE_TABLE), CODE_LEN)
+    self.blocks_packed_to_unpacked_xx_0 = blocks.packed_to_unpacked_bb(chunk_len, gr.GR_LSB_FIRST)
+    self.digital_chunks_to_symbols_xx_0 = digital.chunks_to_symbols_bc((code_table), code_len)
 
     self.blocks_repeat_0 = blocks.repeat(gr.sizeof_gr_complex*1, 4)
     self.blocks_vector_source_x_0 = blocks.vector_source_c([0, sin(pi/4), 1, sin(3*pi/4)], True, 1, [])
