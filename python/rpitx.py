@@ -13,8 +13,8 @@ from txblocks import ooktx, oqpsktx, ooktx2
 import os
 
 class RPITX(gr.top_block):
-    def __init__(self, carrier, samp_rate, bw, amp, block):
-        block(self, carrier, samp_rate, bw, amp)
+    def __init__(self, carrier, samp_rate, bw, amp, block, **kwargs):
+        block(self, carrier, samp_rate, bw, amp, **kwargs)
 
     def send(self, txstr):
         bytes = tuple(bytearray(txstr))
@@ -28,11 +28,11 @@ class RPITX(gr.top_block):
 	os.system('aplay -q /tmp/outbits.wav')
 
 MAX_RETRIES = 100
-def gettx(carrier=32000, samp_rate=192000, bw=1000, amp=1, block=ooktx):
+def gettx(carrier=32000, samp_rate=192000, bw=1000, amp=1, block=ooktx, **kwargs):
     for i in range(MAX_RETRIES):
         try:
             tx = None
-            tx = RPITX(carrier, samp_rate, bw, amp, block)
+            tx = RPITX(carrier, samp_rate, bw, amp, block, **kwargs)
             tx.send("Hi")
         except:
             print "try %d failed" % i
