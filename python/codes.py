@@ -49,8 +49,11 @@ def bitflip(n, bits):
     n >>= 1
   return ind
 
-def codes2list(c):
-  return map(int, "".join(c))
+def codes2list(c, balanced=False):
+  if balanced:
+    return [2*x - 1 for x in map(int, "".join(c))]
+  else:
+    return map(int, "".join(c))
 
 def codes2table(c):
   table = []
