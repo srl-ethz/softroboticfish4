@@ -87,6 +87,7 @@ class Demod:
     self.sdr.read_bytes_async(byte_callback, Demod.SAMP_WINDOW*2)
     print (self.index, "samples read")
     sys.stdout.flush()
+    sys.stdin.readline()
 
   def bb2c(self, baseband):
     mag = np.abs(baseband)
