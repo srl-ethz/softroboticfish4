@@ -1,11 +1,12 @@
 import rx, codes, hamming
 
+import evjs
+j = evjs.Joystick(fake=True)
+
 try:
-  import evjs, leds
-  j = evjs.Joystick(fake=True)
+  import leds
   l = leds.LEDs(j)
 except:
-  j = None
   l = None
 
 def callback(rxstr):
@@ -16,10 +17,10 @@ def callback(rxstr):
   parity = sum(bits) % 2
   data, error = hamming.decode(bits[:-1])
 
-  if j is None or l is None:
-    print count, data, error, parity
+  j.setBits(data)
+  if l is None:
+    print count, j, error, parity
   else:
-    j.setBits(data)
     if parity == 0 and error == 0:
       color = 0xffffff
     elif parity > 0 and error > 0:
