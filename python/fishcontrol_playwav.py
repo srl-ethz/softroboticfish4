@@ -5,6 +5,18 @@ import os
 from time import strftime
 from datetime import datetime
 
+#implement PID locking to prevent multiple instances from running
+import fcntl
+pid_file = 'fishcontrol_playwav.pid'
+fp = open(pid_file, 'w')
+try:
+   fcntl.lockf(fp, fcntl.LOCK_EX | fcntl.LOCK_NB)
+except IOError:
+   print 'another instance is running, quitting this one'
+   sys.exit(1)
+
+
+
 #delay (msec)  between playbacks 
 interWordDelay = 200
 #number of seconds between which we create a new logfile
@@ -83,7 +95,8 @@ try:
     #get timestamp for entry
     t=datetime.now()
     millisec=t.microsecond/1000
-    logfile.write(t.strftime('%Y-%m-%d_%H_%M_%S')+'_'+str(millisec)+','+str(stateNum)+'\n')
+    #indicate that a bad file statenum read occured by writing 'None' in the stateNum field
+    logfile.write(t.strftime('%Y-%m-%d_%H_%M_%S')+'_'+'{:0=3}'.format(millisec)+','+str(stateNum)+'\n')
     logfile.close()
 
     time.sleep(interWordDelay/1000)
