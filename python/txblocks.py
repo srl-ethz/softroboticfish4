@@ -40,12 +40,15 @@ def topblock(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1):
     self.connect((stereo, 0), (self.out, 1))
 
 def asktx(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1, code=codes.mycode, balanced=False, **kwargs):
+    code_len = len(code)
+    chunk_len = int(log(code_len,2))
+
     topblock(self, carrier, samp_rate, bw, amp)
 
     ##################################################
     # Blocks
     ##################################################
-    blocks_packed_to_unpacked_xx_0 = blocks.packed_to_unpacked_bb(1, gr.GR_LSB_FIRST)
+    blocks_packed_to_unpacked_xx_0 = blocks.packed_to_unpacked_bb(chunk_len, gr.GR_LSB_FIRST)
     digital_chunks_to_symbols_xx_0 = digital.chunks_to_symbols_bc((codes.codes2list(code, balanced)), len(code[0]))
     blocks_repeat_0 = blocks.repeat(gr.sizeof_gr_complex*1, samp_rate/bw)
     
