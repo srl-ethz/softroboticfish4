@@ -78,7 +78,7 @@ def oqpsktx(self, carrier=10000, samp_rate = 80000, bw=4000, amp=1, code=codes.m
     # Blocks
     ##################################################
     self.blocks_packed_to_unpacked_xx_0 = blocks.packed_to_unpacked_bb(chunk_len, gr.GR_LSB_FIRST)
-    self.digital_chunks_to_symbols_xx_0 = digital.chunks_to_symbols_bc((code_table), code_len)
+    self.digital_chunks_to_symbols_xx_0 = digital.chunks_to_symbols_bc((code_table), len(code_table)/code_len)
 
     self.blocks_repeat_0 = blocks.repeat(gr.sizeof_gr_complex*1, 4)
     self.blocks_vector_source_x_0 = blocks.vector_source_c([0, sin(pi/4), 1, sin(3*pi/4)], True, 1, [])
