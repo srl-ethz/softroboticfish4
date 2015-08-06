@@ -20,7 +20,7 @@ def find_all(a_str, sub):
         yield start
         start += len(sub) # use start += 1 to find overlapping matches
 
-Mods = enum("MAGNITUDE", "PHASE", "DPHASE")
+Mods = enum("MAGNITUDE", "PHASE", "DPHASE", "VECTOR")
 
 HEADER = '0001101111101000010110' # a_h
 FOOTER = '0001111' # x
@@ -98,6 +98,9 @@ class Demod:
     corrs = []
     for c in self.corr:
       corrs.append(np.correlate(chips, c))
+    # Vector correlations
+    if np.iscomplex(corrs).any():
+      corrs = np.abs(corrs)
     maxes = np.max(np.array(corrs), 0)
     codes = np.argmax(np.array(corrs), 0)
     return maxes, codes
@@ -154,12 +157,14 @@ class Demod:
     baseband = np.concatenate((self.last, iq))
     self.last = iq
     mag, phase, dp  = self.bb2c(baseband)
-    if self.mod == Mods.PHASE:
+    if self.mod == Mods.MAGNITUDE:
+      sig = mag
+    elif self.mod == Mods.PHASE:
       sig = phase
     elif self.mod == Mods.DPHASE:
       sig = dp
     else:
-      sig = mag
+      sig = baseband
     corrs, codes = self.decode(sig)
 
     nc = codes[self.codelen:self.codelen+self.sampchips]
