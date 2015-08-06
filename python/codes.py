@@ -1,3 +1,8 @@
+def makegold(bits, n=2):
+  from sp import gold
+  codes = gold.gold(bits)
+  return ["".join(["1" if x else "0" for x in c]) for c in codes[:n]]
+
 manchester = [
   "01",
   "10",
