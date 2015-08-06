@@ -2,6 +2,7 @@
 import fileLock
 import time
 import os
+import random
 from time import strftime
 from datetime import datetime
 
@@ -26,10 +27,10 @@ fishFileStateCurrent = 'fishStateCurrent.txt'
 
 curState = 0
 
-# create the log directory
-Txlogdir = '/home/pi/fish/python/TxLog'
+# create the log directory. Make a new random dir for each time we startup
+Txlogdir = '/home/pi/fish/python/TxLog/' + '{:0=5}'.format(random.randrange(1,99999,1))
 if not os.path.exists(Txlogdir):
-  print 'creating /home/pi/fish/python/TxLog dir'
+  print 'creating ' + Txlogdir
   os.makedirs(Txlogdir)
 
 #get initial name of logfile
