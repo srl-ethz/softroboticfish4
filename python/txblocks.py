@@ -39,25 +39,7 @@ def topblock(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1):
     self.connect((blocks_complex_to_real_0, 0), (stereo, 0))
     self.connect((stereo, 0), (self.out, 1))
 
-def ooktx(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1, **kwargs):
-    topblock(self, carrier, samp_rate, bw, amp)
-
-    ##################################################
-    # Blocks
-    ##################################################
-    blocks_packed_to_unpacked_xx_0 = blocks.packed_to_unpacked_bb(1, gr.GR_LSB_FIRST)
-    digital_chunks_to_symbols_xx_0 = digital.chunks_to_symbols_bc(([0,1,1,0]), 2)
-    blocks_repeat_0 = blocks.repeat(gr.sizeof_gr_complex*1, samp_rate/bw)
-    
-    ##################################################
-    # Connections
-    ##################################################
-    self.connect((self.source, 0), (blocks_packed_to_unpacked_xx_0, 0))
-    self.connect((blocks_packed_to_unpacked_xx_0, 0), (digital_chunks_to_symbols_xx_0, 0))
-    self.connect((digital_chunks_to_symbols_xx_0, 0), (blocks_repeat_0, 0))
-    self.connect((blocks_repeat_0, 0), (self.sink, 0))
-
-def ooktx2(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1, code=codes.mycode, balanced=False, **kwargs):
+def asktx(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1, code=codes.mycode, balanced=False, **kwargs):
     topblock(self, carrier, samp_rate, bw, amp)
 
     ##################################################
@@ -74,6 +56,14 @@ def ooktx2(self, carrier=32000, samp_rate = 80000, bw=1000, amp=1, code=codes.my
     self.connect((blocks_packed_to_unpacked_xx_0, 0), (digital_chunks_to_symbols_xx_0, 0))
     self.connect((digital_chunks_to_symbols_xx_0, 0), (blocks_repeat_0, 0))
     self.connect((blocks_repeat_0, 0), (self.sink, 0))
+
+def ooktx(*args, **kwargs):
+  kwargs["balanced"] = False
+  asktx(*args, **kwargs)
+
+def bpsktx(*args, **kwargs):
+  kwargs["balanced"] = True
+  asktx(*args, **kwargs)
 
 def oqpsktx(self, carrier=10000, samp_rate = 80000, bw=4000, amp=1, code=codes.mycode, **kwargs):
     code_table, code_len = codes.codes2table(code), len(code)

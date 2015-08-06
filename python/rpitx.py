@@ -9,7 +9,7 @@ from gnuradio import eng_notation
 from gnuradio import gr
 from gnuradio.eng_option import eng_option
 from optparse import OptionParser
-from txblocks import ooktx, oqpsktx, ooktx2
+from txblocks import *
 import os
 
 class RPITX(gr.top_block):
@@ -60,6 +60,8 @@ if __name__ == '__main__':
         block = ooktx
     elif options.modstr.lower() == "oqpsktx":
         block = oqpsktx
+    elif options.modstr.lower() == "bpsktx":
+        block = bpsktx
     else:
         raise ValueError("Unknown modulation scheme")
 
