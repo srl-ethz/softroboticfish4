@@ -1,8 +1,12 @@
 import rx, codes, hamming
-import evjs, leds
 
-j = evjs.Joystick(fake=True)
-l = leds.LEDs(j)
+try:
+  import evjs, leds
+  j = evjs.Joystick(fake=True)
+  l = leds.LEDs(j)
+except:
+  j = None
+  l = None
 
 def callback(rxstr):
   count = ord(rxstr[0])
@@ -12,20 +16,23 @@ def callback(rxstr):
   parity = sum(bits) % 2
   data, error = hamming.decode(bits[:-1])
 
-  #print count, data, error, parity
-  j.setBits(data)
-  if parity == 0 and error == 0:
-    color = 0xffffff
-  elif parity > 0 and error > 0:
-    color = 0xffff00
+  if j is None or l is None:
+    print count, data, error, parity
   else:
-    color = 0xff0000
+    j.setBits(data)
+    if parity == 0 and error == 0:
+      color = 0xffffff
+    elif parity > 0 and error > 0:
+      color = 0xffff00
+    else:
+      color = 0xff0000
 
-  l.go(count, color)
+    l.go(count, color)
   
 d = rx.Demod()
 #d.run(carrier=32000, bw=100, sps=1, mod=rx.Mods.MAGNITUDE, codes=codes.manchester, callback=callback)
 #d.run(carrier=32000, bw=1000, sps=1, mod=rx.Mods.MAGNITUDE, codes=codes.mycode, callback=callback)
 d.run(carrier=32000, bw=500, sps=1, mod=rx.Mods.DPHASE, codes=codes.mycode, callback=callback)
 
-l.end()
+if l is not None:
+  l.end()
