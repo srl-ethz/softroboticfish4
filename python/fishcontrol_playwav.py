@@ -71,7 +71,7 @@ try:
     
     # Write the log file
     curtime=time.time()
-    # create a new log file every 60 seconds
+    # create a new log file every N seconds
     if filestrttm < (curtime - logfileInterval):
       filestrttm=curtime
       logfilename = 'TXLog' + strftime('%Y-%m-%d_%H_%M_%S')

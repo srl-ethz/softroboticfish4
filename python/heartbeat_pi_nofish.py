@@ -39,7 +39,7 @@ class Heartbeat:
     increasing = True
     count = 0
     controllerRunning = True
-    checkInterval = 3000
+    checkInterval = 5000
     delay = 75
     print 'running'
     try:
