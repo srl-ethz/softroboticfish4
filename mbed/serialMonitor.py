@@ -55,7 +55,7 @@ def run(argv):
     fileWriteTime = time.time()
     try:
         while(not terminate):
-            nextData = ser.read(size=750)
+            nextData = ser.read(size=1500)
             if printData:
                 print nextData
             if fout is not None:
