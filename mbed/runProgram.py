@@ -5,6 +5,9 @@ import resetMbed
 import serialMonitor
 
 def runProgram(argv):
+    for arg in argv:
+        if 'startup=1' in arg:
+            time.sleep(10)
     # If a bin file was given as argument, program it onto the mbed
     remount = True
     for arg in argv:
@@ -16,7 +19,7 @@ def runProgram(argv):
             #time.sleep(1)
             os.system('sudo /home/pi/fish/mbed/programMbed.sh ' + arg)
         if 'remount' in arg:
-            remount=int(arg.strip())==1
+            remount=int(arg.split('=')[1].strip())==1
     # Remount mbed
     if remount:
         os.system("sudo /home/pi/fish/mbed/remountMbed.sh")

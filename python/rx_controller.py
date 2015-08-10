@@ -40,8 +40,15 @@ finally:
     except:
         pass
     fishCam.take_picture('_STOPPING')
-    fishCam.cleanup()
-    GPIO.cleanup()
+    try:
+        fishCam.cleanup()
+    except:
+        pass
+    try:
+        GPIO.cleanup()
+    except:
+        pass
     os.system('sudo /home/pi/fish/shutdown.sh')
+    os.system('sudo shutdown -h now')
     
     

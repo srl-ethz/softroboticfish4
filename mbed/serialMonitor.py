@@ -31,7 +31,9 @@ def run(argv):
     printData = True
     filenameBase = ''
     filenameEnd = ''
-    outDir = '/home/pi/fish/data_' + str(time.time()).replace('.','_')
+    if not os.path.exists('/home/pi/fish/data'):
+        os.mkdir('/home/pi/fish/data')
+    outDir = '/home/pi/fish/data/' + str(time.time()).replace('.','_')
     os.mkdir(outDir)
     fout = None
     fileNum = 0
