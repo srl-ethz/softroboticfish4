@@ -21,8 +21,8 @@ def run(argv):
 
     print 'Connecting to ' + port
     ser = serial.Serial(port, 921600, timeout=1)
-    while ser.inWaiting() > 0:
-        ser.read()
+    #while ser.inWaiting() > 0:
+    #    ser.read()
     print '\tconnected to', ser.name
     print 'reading serial data (ctrl+c or q-enter to end)'
 
@@ -50,49 +50,33 @@ def run(argv):
             fout = open(os.path.join(outDir, filenameBase + '-' + str(fileNum) + filenameEnd), 'w+')
 
     # begin monitoring
+    ser.flushInput()
     terminate = False
     fileWriteTime = time.time()
     try:
         while(not terminate):
-            nextChar = ser.read()
-            dataFile += nextChar
-            dataPrint += nextChar
-            # if see a newline, print/write data so far
-            if(nextChar == '\n'):
-                if printData:
-                    print dataPrint[0:-1]
-                    dataPrint = ''
-                if fout is not None:
-                    fout.write(dataFile)
-                    dataFile = ''
-                    if time.time() - fileWriteTime > 30:
-                        fileWriteTime = time.time()
-                        fout.close()
-                        fileNum += 1
-                        print 'opening file', os.path.join(outDir, filenameBase + '-' + str(fileNum) + filenameEnd)
-                        fout = open(os.path.join(outDir, filenameBase + '-' + str(fileNum) + filenameEnd), 'w+')
-                    pass
-            # if they press enter, see what character they entered
-            if select.select([sys.stdin,],[],[],0.0)[0]:
-                while select.select([sys.stdin,],[],[],0.0)[0]:
-                    entered = sys.stdin.read(1).strip()
-                    if entered == 'q':
-                        terminate = True
-                    if entered == 'p':
-                        printData = not printData
-                    if len(entered) == 0 and not printData:
-                        if '\n' in dataPrint:
-                            print dataPrint[0:dataPrint.find('\n')]
-                            dataPrint = dataPrint[dataPrint.find('\n')+1:]
+            nextData = ser.read(size=750)
+            if printData:
+                print nextData
+            if fout is not None:
+                fout.write(nextData)
+                if time.time() - fileWriteTime > 30:
+                    fileWriteTime = time.time()
+                    fout.close()
+                    fileNum += 1
+                    print 'opening file', os.path.join(outDir, filenameBase + '-' + str(fileNum) + filenameEnd)
+                    fout = open(os.path.join(outDir, filenameBase + '-' + str(fileNum) + filenameEnd), 'w+')
+                pass
     except KeyboardInterrupt:
         pass
     finally:
         # print/write remainder
         try:
-            if printData:
-                print dataPrint
-            if fout is not None:
-                fout.write(dataFile)
+            #if printData:
+            #    print dataPrint
+            #if fout is not None:
+            #    fout.write(dataFile)
+            pass
         except:
             pass
         # clean up
