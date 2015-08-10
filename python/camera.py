@@ -2,9 +2,10 @@
 #This is the camera class
 import picamera
 import time
+import os
 
 class FishCamera:
-    def __init__(self):
+    def __init__(self, outputDir = '.'):
 	#init camera
         # Open the camera device.
 	self.camera = picamera.PiCamera()
@@ -31,6 +32,7 @@ class FishCamera:
         self.f=None #the file to be saved
         self.video_trigger=True #controller hysteresis variable
         self.picture_trigger=True
+        self.outputDir = outputDir
     def __enter__(self):
         return self
 
@@ -39,7 +41,7 @@ class FishCamera:
 
     def take_video(self):
 	self.camera.resolution = (640,480)
-        f = 'vid'+str(time.time())+'.h264'
+        f = os.path.join(self.outputDir, str(time.time()).replace('.','_')+'.h264')
         self.camera.start_recording(f)
         # start timeout timer
 
@@ -49,9 +51,9 @@ class FishCamera:
     def stop_video(self):
         self.camera.stop_recording()
 
-    def take_picture(self):
+    def take_picture(self, append=''):
 	self.camera.resolution = (640,480)
-        f = "pic"+str(time.time())+".jpg"
+        f = os.path.join(self.outputDir, str(time.time()).replace('.','_')+append+".jpg")
         self.camera.capture(f)
     def __str__(self):
         return 'MainController Status:'

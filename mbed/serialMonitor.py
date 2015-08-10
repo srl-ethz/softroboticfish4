@@ -12,6 +12,7 @@ import os
 import sys
 import serial
 import select
+import time
 
 def run(argv):
     # Get the COM port of the mbed
@@ -28,17 +29,27 @@ def run(argv):
     dataFile = ''
     dataPrint = ''
     printData = True
+    filenameBase = ''
+    filenameEnd = ''
+    outDir = '/home/pi/fish/data_' + str(time.time()).replace('.','_')
+    os.mkdir(outDir)
     fout = None
+    fileNum = 0
     # get options from command line
     for arg in argv:
         if 'print' in arg:
             printData = int((arg.split('=')[1]).strip()) == 1
         if 'file' in arg:
-            filename = arg.split('=')[1].strip()
-            fout = open(filename, 'w+')
+            filenameBase = arg.split('=')[1].strip()
+            if '.' in filenameBase:
+                filenameEnd = filenameBase[filenameBase.find('.'):]
+                filenameBase = filenameBase[0:filenameBase.find('.')]
+	    print 'opening file', os.path.join(outDir, filenameBase + '-' + str(fileNum) + filenameEnd)
+            fout = open(os.path.join(outDir, filenameBase + '-' + str(fileNum) + filenameEnd), 'w+')
 
     # begin monitoring
     terminate = False
+    fileWriteTime = time.time()
     try:
         while(not terminate):
             nextChar = ser.read()
@@ -52,6 +63,12 @@ def run(argv):
                 if fout is not None:
                     fout.write(dataFile)
                     dataFile = ''
+                    if time.time() - fileWriteTime > 30:
+                        fileWriteTime = time.time()
+                        fout.close()
+                        fileNum += 1
+                        print 'opening file', os.path.join(outDir, filenameBase + '-' + str(fileNum) + filenameEnd)
+                        fout = open(os.path.join(outDir, filenameBase + '-' + str(fileNum) + filenameEnd), 'w+')
                     pass
             # if they press enter, see what character they entered
             if select.select([sys.stdin,],[],[],0.0)[0]:
