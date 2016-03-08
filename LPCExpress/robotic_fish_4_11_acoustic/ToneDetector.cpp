@@ -217,12 +217,13 @@ void ToneDetector::_run()
     #ifdef recordStreaming
         #ifdef recordSamples
         printf("\tSample (V)");
+        printf("\n");
         #endif
         #ifdef recordOutput
         for(uint8_t t = 0; t < numTones; t++)
             printf("\t%f Hz", targetTones[t]);
-        #endif
         printf("\n");
+        #endif
     #endif
     
     // Set up initial buffer configuration

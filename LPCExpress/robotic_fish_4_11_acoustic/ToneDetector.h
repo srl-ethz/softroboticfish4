@@ -29,7 +29,7 @@
 #ifndef TONE_DETECTOR_H
 #define TONE_DETECTOR_H
 
-#define newStream
+//#define newStream
 
 // Configuration
 #define sampleInterval 4  // us between samples
@@ -43,7 +43,7 @@ static const double targetTones[numTones] = {36000, 30000};  // Tones to detect 
 //#define sampleFilename "/local/2tone11.txt"
 //#define sumSampleFrequencies {10000,30000} // will be used to initialize float[] array.  Test signal will be summation of cosines with these frequencies (in Hz)
 
-#define debugLEDs
+//#define debugLEDs
 #define debugPins
 #define recordStreaming // print to COM each sample/output (save everything), or only write last few hundred to a file (but faster since don't write to file while processing)
 //#define recordOutput  // save tone powers - will either stream to COM or save the last numSavedTonePowers powers to a file (based on recordStreaming)

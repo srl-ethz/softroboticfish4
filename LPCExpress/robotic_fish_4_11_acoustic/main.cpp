@@ -11,7 +11,7 @@
 //#define artificialPowers // will use tone powers saved in a file rather than actually sampling (expects two tab-separated columns of powers in /local/powers.wp)
 //#define singleDataStream // just read a single continous stream of bits (as opposed to segmenting into words/decoding)
 
-#define controlFish   // whether to start fishController to control servos/motor
+//#define controlFish   // whether to start fishController to control servos/motor
 #define useAGC        // if undefined, will only set agc once at startup 
 //#define AGCLeds     // if defined, will light the LEDs to indicate gain index (whether or not useAGC is on)
 
@@ -20,16 +20,35 @@
 //#define streamSignalLevel // stream signal level to screen
 
 Serial pc(USBTX, USBRX); 
-#define loopCount 50000       // number of buffers to process before terminating the program
+#define loopCount 20000       // number of buffers to process before terminating the program
 volatile uint32_t count = 0;                // number of buffers sampled so far
 Timer timer;                       // see how long the program runs
 
 // Sampling / Thresholding configuration
+// 20 bps (5/45 ms)
 #define detectWindow 10    // number of buffers to look at when deciding if a tone is present
 #define detectThresh 6     // number of 1s that must be present in a detectWindow group of buffer outputs to declare a tone present
 #define period 80          // the number of buffers from a rising edge to when we start looking for the next rising edge
 #define bitPeriod 100      // only used with saveData: how many buffers it should actually be between rising edges (only used to size the data array)
 #define interWordWait 300  // how many buffers of silence to expect between words
+// 50 bps (5/15 ms)
+//#define detectWindow 10    // number of buffers to look at when deciding if a tone is present
+//#define detectThresh 6     // number of 1s that must be present in a detectWindow group of buffer outputs to declare a tone present
+//#define period 20          // the number of buffers from a rising edge to when we start looking for the next rising edge
+//#define bitPeriod 40       // only used with saveData: how many buffers it should actually be between rising edges (only used to size the data array)
+//#define interWordWait 300  // how many buffers of silence to expect between words
+// 77 bps (5/8 ms)
+//#define detectWindow 10    // number of buffers to look at when deciding if a tone is present
+//#define detectThresh 6     // number of 1s that must be present in a detectWindow group of buffer outputs to declare a tone present
+//#define period 10          // the number of buffers from a rising edge to when we start looking for the next rising edge
+//#define bitPeriod 26       // only used with saveData: how many buffers it should actually be between rising edges (only used to size the data array)
+//#define interWordWait 300  // how many buffers of silence to expect between words
+// 100 bps (5/5 ms)
+//#define detectWindow 10    // number of buffers to look at when deciding if a tone is present
+//#define detectThresh 6     // number of 1s that must be present in a detectWindow group of buffer outputs to declare a tone present
+//#define period 6           // the number of buffers from a rising edge to when we start looking for the next rising edge
+//#define bitPeriod 20       // only used with saveData: how many buffers it should actually be between rising edges (only used to size the data array)
+//#define interWordWait 300  // how many buffers of silence to expect between words
 
 // Detecting data // TODO check what actually needs to be volatile
 volatile bool waitingForEnd;     // got data, now waiting until next bit transmission is expected (waiting until "period" buffers have elapsed since edge)
@@ -127,8 +146,6 @@ volatile uint32_t autoModeIndex;
 #endif
 
 // Log data commands
-//LocalFileSystem local("local");
-//FILE* foutDataWords;
 
 // Called by toneDetector when new tone powers are computed
 void processTonePowers(int32_t* newTonePowers, uint32_t signalLevel)
@@ -255,7 +272,7 @@ void processTonePowers(int32_t* newTonePowers, uint32_t signalLevel)
                 data[dataIndex++] = tonePresent%2;
                 #endif
                 #ifdef streamData
-                printf("%d", (bool)(tonePresent%2));
+                printf("%ld\t%d\n", count, (bool)(tonePresent%2));
                 #endif
                 periodIndex = detectSums[tonePresent];
                 fskIndex = (fskIndex+1) % numFSKGroups;
@@ -281,11 +298,17 @@ void processTonePowers(int32_t* newTonePowers, uint32_t signalLevel)
                     
                     timeSinceGoodWord = 0;
                 }
-                else if(interWord)
+                else if(!interWord)
                 {
                     #ifdef streamData
-                    printf("0\t-1\n");
+                    printf("%ld\t0\t-1\n", count);
                     #endif
+					#ifdef saveData
+                    for(int dbi = 0; dbi < dataWordLength; dbi++)
+                    	data[dataWordIndex][dbi] = 0;
+                    data[dataWordIndex][dataWordLength-1] = 1;
+                    dataWordIndex++;
+					#endif
 					#ifdef newStream
                     toStream[4] = -1;
                     streamFishStateEvent = 1;
@@ -306,8 +329,14 @@ void processTonePowers(int32_t* newTonePowers, uint32_t signalLevel)
                 // Discard current word as garbage and start again
                 dataBitIndex = 0;
                 #ifdef streamData
-                printf("0\t-2\n");
+                printf("%ld\t0\t-2\n", count);
                 #endif
+				#ifdef saveData
+				for(int dbi = 0; dbi < dataWordLength; dbi++)
+					data[dataWordIndex][dbi] = 0;
+				data[dataWordIndex][dataWordLength-2] = 1;
+				dataWordIndex++;
+				#endif
 				#ifdef newStream
 				toStream[4] = -2;
 				streamFishStateEvent = 2;
@@ -649,10 +678,13 @@ void decodeDataWord(volatile bool* data)
         fishController.processDataWord(word);
         lastDataWord = word;
         #ifdef streamData
-        printf("%d\t1\n", (int)word);
+        if(timeSinceGoodWord >= fishResetTimeout)
+        	printf("%ld\t%d\t-4\n", count, (int)word);
+        else
+        	printf("%ld\t%d\t1\n", count, (int)word);
         #endif
 		#ifdef newStream
-        if(timeSinceGoodWord == fishResetTimeout+1)
+        if(timeSinceGoodWord >= fishResetTimeout)
         	toStream[4] = -4;
         else
         	toStream[4] = word;
@@ -661,7 +693,10 @@ void decodeDataWord(volatile bool* data)
     else
     {
         #ifdef streamData
-        printf("0\t-3\n");
+    	uint16_t word = 0;
+    	for(int i = 0; i < 16; i++)
+    		word += data[i] << i;
+        printf("%ld\t%d\t-3\n", count, word);
         #endif
 		#ifdef newStream
         toStream[4] = -3;
@@ -687,7 +722,10 @@ int main()
     wait(1);
     
     // Create file for logging data words
-    /*int fileNum = -1;
+	#ifdef saveData
+    LocalFileSystem local("local");
+    FILE* foutDataWords;
+    int fileNum = -1;
     char filename[25];
     foutDataWords = NULL;
     do
@@ -699,7 +737,7 @@ int main()
     	printf("%d\n", fileNum);
     } while(foutDataWords != NULL);
     foutDataWords = fopen(filename, "w");
-    Timer t1;
+    /*Timer t1;
     t1.start();
     uint32_t test[5] = {123000, 122000, 121000, 1, 119};
     for(uint32_t i = 0; i < 1000; i++)
@@ -709,6 +747,7 @@ int main()
     fclose(foutDataWords);
     printf("time:%d\n", t1.read_us());
     while(true);*/
+	#endif
 
     // Configure the tone detector
     toneDetector.setCallback(&processTonePowers);
@@ -828,41 +867,53 @@ int main()
         
     #if defined(singleDataStream) && defined(saveData)
     printf("\nData received (%d bits):\n", dataIndex);
+    fprintf(foutDataWords, "\nData received (%d bits):\n", dataIndex);
     long errors = 0;
     for(int d = 5; d < dataIndex; d++)
     {
         printf("%d", data[d]);
+        fprintf(foutDataWords, "%d", data[d]);
         if(d > 0 && data[d] == data[d-1])
             errors++;
     }
     printf("\n");
     printf("errors: %ld\n", errors);
+    fprintf(foutDataWords, "\n");
+	fprintf(foutDataWords, "errors: %ld\n", errors);
+	fclose(foutDataWords);
     #ifdef debugLEDs
     if(errors > 0)
         led1 = 1;
     #endif
     #elif defined(saveData)
     printf("\nData received (%d words):\n", dataWordIndex);
+    fprintf(foutDataWords, "\nData received (%d words):\n", dataWordIndex);
     long errors = 0;
     long badWords = 0;
     for(int w = 0; w < dataWordIndex; w++)
     {
         errors = 0;
         printf("  ");
+        fprintf(foutDataWords, "  ");
         for(int b = 0; b < dataWordLength; b++)
         {
             printf("%d", data[w][b]);
+            fprintf(foutDataWords, "%d", data[w][b]);
             if(b > 0 && data[w][b-1] == data[w][b])
                 errors++;
         }
         if(errors > 0)
         {
             printf(" X");
+            fprintf(foutDataWords, " X");
             badWords++;
         }
         printf("\n");
+        fprintf(foutDataWords, "\n");
     }
     printf("\nbad words: %d\n", badWords);
+    fprintf(foutDataWords, "\nbad words: %d\n", badWords);
+    fclose(foutDataWords);
     #ifdef debugLEDs
     if(badWords > 0)
         led1 = 1;

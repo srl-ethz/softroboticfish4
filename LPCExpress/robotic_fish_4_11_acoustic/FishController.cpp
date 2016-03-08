@@ -13,7 +13,8 @@ extern "C" void mbed_reset();
 // Map received state to fish values
 const float pitchLookup[] = {0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8}; // [0.2 - 0.8]
 //const float yawLookup[] = {-1, -0.6667, -0.3333, 0, 0.3333, 0.6667, 1}; // [-1, 1]
-const float yawLookup[] = {-1, -0.875, -0.7, 0, 0.7, 0.875, 1}; // [-1, 1]
+//const float yawLookup[] = {-1, -0.875, -0.7, 0, 0.7, 0.875, 1}; // [-1, 1]
+const float yawLookup[] = {-1, -0.7, -0.5, 0, 0.5, 0.7, 1}; // [-1, 1]
 const float thrustLookup[] = {0, 0.25, 0.50, 0.75};  
 const float frequencyLookup[] = {0.0000009, 0.0000012, 0.0000014, 0.0000016}; // cycles/us
 const float periodHalfLookup[] = {555555, 416666, 357142, 312500}; // 1/(2*frequencyLookup) -> us
@@ -106,10 +107,12 @@ void FishController::stop()
     newYawIndex = 3;
     newThrustIndex = 0;
     newFrequencyIndex = 1;
-    // Send commands to fish
-    tickerCallback();
-    
-    // Wait for the fish to update and stop
+    // Send commands to fish (multiple times to make sure we get in the right part of the cycle to actually update it)
+    for(int i = 0; i < 200; i++)
+    {
+    	tickerCallback();
+    	wait_ms(10);
+    }
     wait(1);
     
     // Put dive planes in a weird position
@@ -161,7 +164,7 @@ void FishController::tickerCallback()
             periodHalf = getPeriodHalf();
             // Adjust thrust if needed
             if(yaw < 0.0)
-                thrustCommand = (1.0 + 0.8*yaw)*thrust; // 0.7 can be adjusted to a power of 2 if needed
+                thrustCommand = (1.0 + 0.75*yaw)*thrust; // 0.7 can be adjusted to a power of 2 if needed
             else
             	thrustCommand = thrust;
             fullCycle = false;
@@ -170,7 +173,7 @@ void FishController::tickerCallback()
         {
             // Reverse for the downward slope
             if(yaw > 0.0)
-            	thrustCommand = -(1.0 - 0.8*yaw)*thrust;
+            	thrustCommand = -(1.0 - 0.75*yaw)*thrust;
             else
             	thrustCommand = -thrust;
             fullCycle = true;
