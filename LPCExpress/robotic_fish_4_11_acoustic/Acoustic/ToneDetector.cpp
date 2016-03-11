@@ -1,10 +1,13 @@
+/*
+ * Author: Joseph DelPreto
+ */
 
 #include "ToneDetector.h"
 
 // The static instance
 ToneDetector toneDetector;
-#ifdef newStream
-int32_t toStream[5] = {0,0,0,0,0};
+#ifdef streamAcousticControlLog
+int32_t acousticControlLogToStream[5] = {0,0,0,0,0};
 #endif
 
 //============================================
@@ -208,7 +211,7 @@ void ToneDetector::startADC()
 
 // Start acquiring and processing samples
 // Will run forever or until stop() is called
-void ToneDetector::_run()
+void ToneDetector::run()
 {
     if(!readyToBegin)
         return;
@@ -466,10 +469,10 @@ void ToneDetector::processSamples()
     // Deliver results if a callback function was provided
     if(callbackFunction != 0 && readyToThreshold)
         callbackFunction(tonePowersSum, signalLevel >> 7); // divide signal level by 128 is basically making it an average (125 samples/buffer)
-	#ifdef newStream
-	toStream[0] = tonePowers[0][tonePowersWindowIndex];
-	toStream[1] = tonePowers[1][tonePowersWindowIndex];
-	toStream[2] = signalLevel >> 7;
+	#ifdef streamAcousticControlLog
+	acousticControlLogToStream[0] = tonePowers[0][tonePowersWindowIndex];
+	acousticControlLogToStream[1] = tonePowers[1][tonePowersWindowIndex];
+	acousticControlLogToStream[2] = signalLevel >> 7;
 	#endif
     #ifdef debugLEDs 
     led3 = 0;        // Indicate completion of processing

@@ -1,3 +1,8 @@
+/*
+ * AcousticController.h
+ * Author: Joseph DelPreto
+ */
+
 #ifndef FISH_CONTROLLER_H
 #define FISH_CONTROLLER_H
 
@@ -33,7 +38,7 @@ class FishController
         void start();
         void stop();
         // Processing
-        void processDataWord(uint16_t word);
+        void processAcousticWord(uint16_t word);
         void tickerCallback();
         // Debug
         #ifdef debugFishState

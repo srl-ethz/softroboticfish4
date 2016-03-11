@@ -26,11 +26,12 @@ const float periodHalfLookup[] = {555555, 416666, 357142, 312500}; // 1/(2*frequ
 // Constructor
 FishController::FishController() :
     // Initialize variables
+	autoMode(false),
     tickerInterval(1000),
     curTime(0),
     fullCycle(true),
     raiser(3.5),
-    inTickerCallback(false),
+	inTickerCallback(false),
     // Outputs for motor and servos
     motorPWM(p23),
     motorOutA(p11),
@@ -40,7 +41,6 @@ FishController::FishController() :
     //brushlessMotor(p25),
     brushlessOffTime(30000),
     // Button board
-	autoMode(false),
     buttonBoard(p9, p10, p29, p30) // sda, scl, int1, int2
 {
     newSelectButtonIndex = 0;
@@ -87,7 +87,7 @@ void FishController::start()
     
     
     // Start control ticker callback
-    printf("Fish controller starting\n");
+    //printf("Fish controller starting\n");
     ticker.attach_us(&fishController, &FishController::tickerCallback, tickerInterval);
 //    #ifdef debugFishState
 //    printf("Starting...\n");
@@ -128,7 +128,7 @@ void FishController::stop()
 //============================================
 // Processing
 //============================================ 
-void FishController::processDataWord(uint16_t word)
+void FishController::processAcousticWord(uint16_t word)
 {
     while(inTickerCallback);
     // Extract state from word
@@ -294,7 +294,7 @@ void FishController::buttonCallback(char button, bool pressed, char state) // st
         	else
         	{
         		fishController.setLEDs(255, false);
-        		fishController.processDataWord(0x0236);
+        		fishController.processAcousticWord(0x0236);
         	}
         	break;
         default:

@@ -1,4 +1,5 @@
 /**
+ * Author: Joseph DelPreto
  * A class for sampling a signal and detecting whether certain frequencies are present 
  * Implements the Goertzel algorithm for tone detection
  *   Uses fixed-point arithmetic to a > 10x speedup over a floating-point implementation
@@ -29,7 +30,7 @@
 #ifndef TONE_DETECTOR_H
 #define TONE_DETECTOR_H
 
-//#define newStream
+//#define streamAcousticControlLog // for every buffer, streams goertzel powers f1, goerztel powers f2, signal level, gain, fish state/events over Serial
 
 // Configuration
 #define sampleInterval 4  // us between samples
@@ -43,9 +44,10 @@ static const double targetTones[numTones] = {36000, 30000};  // Tones to detect 
 //#define sampleFilename "/local/2tone11.txt"
 //#define sumSampleFrequencies {10000,30000} // will be used to initialize float[] array.  Test signal will be summation of cosines with these frequencies (in Hz)
 
-//#define debugLEDs
+#define debugLEDs
 #define debugPins
-#define recordStreaming // print to COM each sample/output (save everything), or only write last few hundred to a file (but faster since don't write to file while processing)
+#define recordStreaming // print to COM each sample/output (save everything), as opposed to only write last few hundred to a file (but faster since don't write to file while processing)
+						// note that either recordOutput or recordSamples must be undefined to actually record anything
 //#define recordOutput  // save tone powers - will either stream to COM or save the last numSavedTonePowers powers to a file (based on recordStreaming)
 //#define recordSamples // save samples - will either stream to COM or save the last numSavedSamples samples to a file (based on recordStreaming)
 
@@ -100,7 +102,7 @@ class ToneDetector
         void init();
         void setCallback(void (*myFunction)(int32_t* tonePowers, uint32_t signalLevel));
         // Execution Control
-        virtual void _run();      // main loop, runs forever or until stop() is called
+        virtual void run();      // main loop, runs forever or until stop() is called
         virtual void stop();      // stop the main loop
         void finish();            // write final output to files and whatnot
         volatile bool terminated; // indicates main loop should stop (may be set by error callback or by stop())
@@ -165,8 +167,8 @@ void ERR0_callback();   // Error on dma channel 0
 // Create a static instance of ToneDetector to be used by anyone doing detection
 //   This allows the ticker callback to be a member function 
 extern ToneDetector toneDetector;
-#ifdef newStream
-extern int32_t toStream[5];
+#ifdef streamAcousticControlLog
+extern int32_t acousticControlLogToStream[5]; // goertzel powers f1, goerztel powers f2, signal level, gain, events (events is deprecated)
 #endif
 
 #endif // ifndef TONE_DETECTOR_H
