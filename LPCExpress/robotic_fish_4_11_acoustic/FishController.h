@@ -11,24 +11,31 @@
 #include "ButtonBoard.h"
 #include "esc.h" // brushless motor controller
 
+// Control
+#define fishControllerTickerInterval 1000 // how often to call the control ticker, in microseconds
+
 // Constants
 #define PI2 6.2831853  // PI is not included with math.h for some reason
+// Values to use for resetting the fish to neutral
+#define resetSelectButtonValue 0
+#define resetPitchValue        0.5
+#define resetYawValue          0
+#define resetThrustValue       0
+#define resetFrequencyValue    0.0000012 // cycles/us
+#define resetPeriodHalfValue   416666    // 1/(2*frequency) -> us
+// Pins
+#define lowBatteryVoltagePin p26
 
-// Macros
-#define getSelectIndex(d)     ((d & (1 << 0)) >> 0)
-#define getPitchIndex(d)      ((d & (7 << 1)) >> 1)
-#define getYawIndex(d)        ((d & (7 << 4)) >> 4)
-#define getThrustIndex(d)     ((d & (3 << 7)) >> 7)
-#define getFrequencyIndex(d)  ((d & (3 << 9)) >> 9)
+#define motorPWMPin   p23
+#define motorOutAPin  p11
+#define motorOutBPin  p12
+#define servoLeftPin  p21
+#define servoRightPin p24
 
-#define getSelectButton()   (newSelectButtonIndex > 0)
-#define getPitch()           pitchLookup[newPitchIndex]
-#define getYaw()               yawLookup[newYawIndex]
-#define getThrust()         thrustLookup[newThrustIndex]
-#define getFrequency()   frequencyLookup[newFrequencyIndex]
-#define getPeriodHalf() periodHalfLookup[newFrequencyIndex]
-
-#define getCurStateWord (uint16_t)((uint16_t)newSelectButtonIndex + ((uint16_t)newPitchIndex << 1) + ((uint16_t)newYawIndex << 4) + ((uint16_t)newThrustIndex << 7) + ((uint16_t)newFrequencyIndex << 9));
+#define buttonBoardSDAPin  p9
+#define buttonBoardSCLPin  p10
+#define buttonBoardInt1Pin p29
+#define buttonBoardInt2Pin p30
 
 class FishController
 {
@@ -40,20 +47,35 @@ class FishController
         // Processing
         void processAcousticWord(uint16_t word);
         void tickerCallback();
-        // Debug
+        // Debug / Logging
+        volatile uint8_t streamFishStateEventController; // will indicate the last button board event - up to the caller to reset it if desired
         #ifdef debugFishState
         void printDebugState();
         #endif
         // LEDs
         void setLEDs(char mask, bool turnOn);
         volatile bool autoMode;
+        // Set New State (which will take affect at next appropriate point in control cycle)
+		void setSelectButton(bool newSelectButtonValue);
+		void setPitch(float newPitchValue);
+		void setYaw(float newYawValue);
+		void setThrust(float newThrustValue);
+		void setFrequency(float newFrequencyValue, float newPeriodHalfValue);
+		// Get (possible pending) State
+		bool getSelectButton();
+		float getPitch();
+		float getYaw();
+		float getThrust();
+		float getFrequency();
+		float getPeriodHalf();
     private:
-        // State extracted from data words (index into lookup tables)
-        volatile uint8_t newSelectButtonIndex;
-        volatile uint8_t newPitchIndex;
-        volatile uint8_t newYawIndex;
-        volatile uint8_t newThrustIndex;
-        volatile uint8_t newFrequencyIndex;
+		// State which will be applied at the next appropriate time in the control cycle
+		volatile bool newSelectButton;
+		volatile float newPitch;
+		volatile float newYaw;
+		volatile float newThrust;
+		volatile float newFrequency;
+		volatile float newPeriodHalf;
         // State currently executing on fish
         volatile bool selectButton;
         volatile float pitch;

@@ -7,6 +7,13 @@
 // The static instance
 AcousticController acousticController;
 
+// Map received state to fish values
+const float pitchLookupAcoustic[] = {0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8}; // [0.2 - 0.8]
+const float yawLookupAcoustic[] = {-1, -0.7, -0.5, 0, 0.5, 0.7, 1}; // [-1, 1]
+const float thrustLookupAcoustic[] = {0, 0.25, 0.50, 0.75};
+const float frequencyLookupAcoustic[] = {0.0000009, 0.0000012, 0.0000014, 0.0000016}; // cycles/us // NOTE also update periodHalfLookup if you update these values
+const float periodHalfLookupAcoustic[] = {555555, 416666, 357142, 312500}; // 1/(2*frequencyLookup) -> us
+
 // Autonomous mode definition
 uint16_t autoModeCommands[] = {0x05B6 /* forward */, 0x05BC /*down*/, 0x05B6 /* forward */, 0x0586 /* left */,
 								0x05B6 /* forward */, 0x05E6 /* right */,  0x05B6 /* forward */,  0x05B0 /* up */,
@@ -37,7 +44,9 @@ AcousticController::AcousticController(Serial* usbSerialObject /* = NULL */) :
     // Initialize variables
     bufferCount(0),
 	lastDataWord(0),
-	timeSinceGoodWord(0)
+	timeSinceGoodWord(0),
+	streamCurFishStateAcoustic(0),
+	streamCurFishStateEventAcoustic(0)
 {
 	// AGC Pins
 	gain0 = new DigitalOut(agcPin0);
@@ -189,7 +198,7 @@ void AcousticController::processTonePowers(int32_t* newTonePowers, uint32_t sign
     // See if we're in autonomous mode and if so update the command
     if(fishController.autoMode)
     {
-    	fishController.processAcousticWord(autoModeCommands[autoModeIndex]);
+    	processAcousticWord(autoModeCommands[autoModeIndex]);
     	autoModeCount++;
     	if(autoModeCount > autoModeDurations[autoModeIndex])
     	{
@@ -302,7 +311,7 @@ void AcousticController::processTonePowers(int32_t* newTonePowers, uint32_t sign
                 if(interWord && dataBitIndex == dataWordLength)
                 {
                 	timeSinceGoodWord = 0;
-                	streamFishStateEvent = 5;
+                	streamCurFishStateEventAcoustic = 5;
                     // Decode last word and then send it out
                     #ifdef saveData
                 	decodeAcousticWord(data[dataWordIndex]);
@@ -326,7 +335,7 @@ void AcousticController::processTonePowers(int32_t* newTonePowers, uint32_t sign
 					#endif
 					#ifdef streamAcousticControlLog
                     acousticControlLogToStream[4] = -1;
-                    streamFishStateEvent = 1;
+                    streamCurFishStateEventAcoustic = 1;
 					#endif
                     lastDataWord = 0;
                 }
@@ -354,7 +363,7 @@ void AcousticController::processTonePowers(int32_t* newTonePowers, uint32_t sign
 				#endif
 				#ifdef streamAcousticControlLog
 				acousticControlLogToStream[4] = -2;
-				streamFishStateEvent = 2;
+				streamCurFishStateEventAcoustic = 2;
 				#endif
                 lastDataWord = 0;
             }
@@ -594,7 +603,7 @@ void AcousticController::processTonePowers(int32_t* newTonePowers, uint32_t sign
         {
             bool neutralWord[] = {0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0}; // Decodes to state 54, which is neutral state
             decodeAcousticWord(neutralWord);
-            streamFishStateEvent = 4;
+            streamCurFishStateEventAcoustic = 4;
         }
         #endif
         timeSinceGoodWord = fishTimeoutAcousticBuffers+1; // make sure we won't constantly send a neutral command (only timeout once)
@@ -617,7 +626,11 @@ void AcousticController::processTonePowers(int32_t* newTonePowers, uint32_t sign
     uint16_t streamSignalLevel = ((acousticControlLogToStream[2] >> 2) & ((uint16_t)2047)) + (((uint16_t)21) << 11); // first Fiji day was just acousticControlLogToStream[2], second day included code word
     uint8_t streamGain = acousticControlLogToStream[3] + 168; // only used in first day
     //int16_t streamWord = acousticControlLogToStream[4];
-    uint16_t streamWord = (uint16_t)streamCurFishState | ((uint16_t)streamFishStateEvent << 11); // same for both days
+    // Decide the event to transmit, giving priority to acoustic events over button board events
+    uint16_t streamFishStateEvent = fishController.streamFishStateEventController;
+    if(streamCurFishStateEventAcoustic > 0)
+    	streamFishStateEvent = streamCurFishStateEventAcoustic;
+    uint16_t streamWord = (uint16_t)streamCurFishStateAcoustic | ((uint16_t)streamFishStateEvent << 11); // same for both Fiji days
 
     uint8_t* bufferOut = (uint8_t*) (&streamGoertzel1);
     usbSerial->putc(bufferOut[0]);
@@ -646,7 +659,11 @@ void AcousticController::processTonePowers(int32_t* newTonePowers, uint32_t sign
 	/*uint8_t* bufferOut = (uint8_t*) acousticControlLogToStream;
     for(uint8_t i = 0; i < 20; i++)
     	usbSerial->putc(bufferOut[i]);*/
-	streamFishStateEvent = 0;
+
+    // Reset the events so we don't constantly print them
+    // TODO remove this so we do constantly print them, and only look for changes in the column in case some are dropped?
+    streamCurFishStateEventAcoustic = 0;
+    fishController.streamFishStateEventController = 0;
 	#endif
 }
 
@@ -696,7 +713,7 @@ void AcousticController::decodeAcousticWord(volatile bool* data)
                 word |=  data[b] << i++;
         }
         // Update the fish
-        fishController.processAcousticWord(word);
+        processAcousticWord(word);
         lastDataWord = word;
         #ifdef streamData
         if(timeSinceGoodWord >= fishTimeoutAcousticBuffers)
@@ -721,10 +738,30 @@ void AcousticController::decodeAcousticWord(volatile bool* data)
         #endif
 		#ifdef streamAcousticControlLog
         acousticControlLogToStream[4] = -3;
-        streamFishStateEvent = 3;
+        streamCurFishStateEventAcoustic = 3;
 		#endif
         lastDataWord = 0;
     }
+}
+
+void AcousticController::processAcousticWord(uint16_t word)
+{
+    // Extract state from word
+    newSelectButtonIndex = getSelectIndexAcoustic(word);
+    newPitchIndex = getPitchIndexAcoustic(word);
+    newYawIndex = getYawIndexAcoustic(word);
+    newThrustIndex = getThrustIndexAcoustic(word);
+    newFrequencyIndex = getFrequencyIndexAcoustic(word);
+    // Log it
+    streamCurFishStateAcoustic = getCurStateWordAcoustic;
+    // Set the states
+	#ifdef acousticControllerControlFish
+    fishController.setSelectButton(newSelectButtonIndex > 0);
+    fishController.setPitch(pitchLookupAcoustic[newPitchIndex]);
+    fishController.setYaw(yawLookupAcoustic[newYawIndex]);
+    fishController.setThrust(thrustLookupAcoustic[newThrustIndex]);
+    fishController.setFrequency(frequencyLookupAcoustic[newFrequencyIndex], periodHalfLookupAcoustic[newFrequencyIndex]);
+	#endif
 }
 #endif
 
@@ -787,6 +824,12 @@ void AcousticController::run()
     #ifdef acousticControllerControlFish
     // Stop the fish controller
     fishController.stop();
+    // If battery died, wait a bit for pi to clean up and shutdown and whatnot
+    if(lowBatteryVoltageInput == 0)
+    {
+		wait(90); // Give the Pi time to shutdown
+		fishController.setLEDs(255, false);
+    }
     #endif
 
     // Print results

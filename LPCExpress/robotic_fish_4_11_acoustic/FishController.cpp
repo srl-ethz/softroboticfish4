@@ -4,20 +4,8 @@
 // The static instance
 FishController fishController;
 
-volatile uint8_t streamFishStateEvent = 0;
-volatile uint16_t streamCurFishState = 0;
-
 // Function to reset mbed
 extern "C" void mbed_reset();
-
-// Map received state to fish values
-const float pitchLookup[] = {0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8}; // [0.2 - 0.8]
-//const float yawLookup[] = {-1, -0.6667, -0.3333, 0, 0.3333, 0.6667, 1}; // [-1, 1]
-//const float yawLookup[] = {-1, -0.875, -0.7, 0, 0.7, 0.875, 1}; // [-1, 1]
-const float yawLookup[] = {-1, -0.7, -0.5, 0, 0.5, 0.7, 1}; // [-1, 1]
-const float thrustLookup[] = {0, 0.25, 0.50, 0.75};  
-const float frequencyLookup[] = {0.0000009, 0.0000012, 0.0000014, 0.0000016}; // cycles/us
-const float periodHalfLookup[] = {555555, 416666, 357142, 312500}; // 1/(2*frequencyLookup) -> us
 
 //============================================
 // Initialization
@@ -27,41 +15,59 @@ const float periodHalfLookup[] = {555555, 416666, 357142, 312500}; // 1/(2*frequ
 FishController::FishController() :
     // Initialize variables
 	autoMode(false),
-    tickerInterval(1000),
+    tickerInterval(fishControllerTickerInterval),
     curTime(0),
     fullCycle(true),
     raiser(3.5),
 	inTickerCallback(false),
     // Outputs for motor and servos
-    motorPWM(p23),
-    motorOutA(p11),
-    motorOutB(p12),
-    servoLeft(p21),
-    servoRight(p24),
+    motorPWM(motorPWMPin),
+    motorOutA(motorOutAPin),
+    motorOutB(motorOutBPin),
+    servoLeft(servoLeftPin),
+    servoRight(servoRightPin),
     //brushlessMotor(p25),
     brushlessOffTime(30000),
     // Button board
-    buttonBoard(p9, p10, p29, p30) // sda, scl, int1, int2
+    buttonBoard(buttonBoardSDAPin, buttonBoardSCLPin, buttonBoardInt1Pin, buttonBoardInt2Pin) // sda, scl, int1, int2
 {
-    newSelectButtonIndex = 0;
-    newPitchIndex = 3;
-    newYawIndex = 3;
-    newThrustIndex = 0;
-    newFrequencyIndex = 1;
+	streamFishStateEventController = 0;
+
+    newSelectButton = resetSelectButtonValue;
+    newPitch = resetPitchValue;
+    newYaw = resetYawValue;
+    newThrust = resetThrustValue;
+    newFrequency = resetFrequencyValue;
+    newPeriodHalf = resetPeriodHalfValue;
     
-    selectButton = getSelectButton();
-    pitch = getPitch();
-    yaw = getYaw();
-    thrust = getThrust();
+    selectButton = newSelectButton;
+    pitch = newPitch;
+    yaw = newYaw;
+    thrust = newThrust;
     thrustCommand = 0;
-    frequency = getFrequency();
-    periodHalf = getPeriodHalf();   
+    frequency = newFrequency;
+    periodHalf = newPeriodHalf;
     dutyCycle = 0;
     brushlessOff = false;
     
     buttonBoard.registerCallback(&FishController::buttonCallback);
     buttonBoard.setLEDs(255, false);
 }
+
+// Set the desired state
+// They will take affect at the next appropriate time in the control cycle
+void FishController::setSelectButton(bool newSelectButtonValue) {newSelectButton = newSelectButtonValue;}
+void FishController::setPitch(float newPitchValue) {newPitch = newPitchValue;}
+void FishController::setYaw(float newYawValue) {newYaw = newYawValue;}
+void FishController::setThrust(float newThrustValue) {newThrust = newThrustValue;}
+void FishController::setFrequency(float newFrequencyValue, float newPeriodHalfValue) {newFrequency = newFrequencyValue; newPeriodHalf = newPeriodHalfValue;}
+// Get the (possible pending) state
+bool FishController::getSelectButton() {return newSelectButton;}
+float FishController::getPitch() {return newPitch;}
+float FishController::getYaw() {return newYaw;}
+float FishController::getThrust() {return newThrust;}
+float FishController::getFrequency() {return newFrequency;}
+float FishController::getPeriodHalf() {return newPeriodHalf;}
 
 void FishController::start()
 {
@@ -85,9 +91,7 @@ void FishController::start()
         wait_ms(500);
     }
     
-    
     // Start control ticker callback
-    //printf("Fish controller starting\n");
     ticker.attach_us(&fishController, &FishController::tickerCallback, tickerInterval);
 //    #ifdef debugFishState
 //    printf("Starting...\n");
@@ -97,51 +101,40 @@ void FishController::start()
 void FishController::stop()
 {
     // Stop updating the fish
-    while(inTickerCallback);
-    ticker.detach();
-    wait_ms(5);
+    while(inTickerCallback); // wait for commands to settle
+    ticker.detach(); // stop updating commands
+    wait_ms(5);      // wait a bit to make sure it stops
     
     // Reset fish state to neutral
-    newSelectButtonIndex = 0;
-    newPitchIndex = 3;
-    newYawIndex = 3;
-    newThrustIndex = 0;
-    newFrequencyIndex = 1;
+    newSelectButton = resetSelectButtonValue;
+    newPitch = resetPitchValue;
+    newYaw = resetYawValue;
+    newThrust = resetThrustValue;
+    newFrequency = resetFrequencyValue;
+    newPeriodHalf = resetPeriodHalfValue;
     // Send commands to fish (multiple times to make sure we get in the right part of the cycle to actually update it)
     for(int i = 0; i < 200; i++)
     {
     	tickerCallback();
     	wait_ms(10);
     }
+    // Make sure commands are sent to motors and applied
     wait(1);
     
-    // Put dive planes in a weird position
-    servoLeft = pitchLookup[0];
-    servoRight = pitchLookup[0];
+    // Put dive planes in a weird position to indicate stopped
+    servoLeft = 0.3;
+    servoRight = 0.3;
     
     // Light the LEDs to indicate termination
     buttonBoard.setLEDs(255, true);
-    wait(90);
-    buttonBoard.setLEDs(255, false);
 }
 
 //============================================
 // Processing
 //============================================ 
-void FishController::processAcousticWord(uint16_t word)
-{
-    while(inTickerCallback);
-    // Extract state from word
-    newSelectButtonIndex = getSelectIndex(word);
-    newPitchIndex = getPitchIndex(word);
-    newYawIndex = getYawIndex(word);
-    newThrustIndex = getThrustIndex(word);
-    newFrequencyIndex = getFrequencyIndex(word);
-}
-
 void FishController::tickerCallback()
 {
-    inTickerCallback = true;
+    inTickerCallback = true; // so we don't asynchronously stop the controller in a bad point of the cycle
     
     // get the current elapsed time since last reset (us)
     curTime += tickerInterval; 
@@ -153,15 +146,15 @@ void FishController::tickerCallback()
     if(curTime > periodHalf) 
     { 
         // read new yaw value every half cycle
-        yaw = getYaw(); // a value from -1 to 1
+        yaw = newYaw; // a value from -1 to 1
 
         // Read frequency only every full cycle
         if(fullCycle) 
         { 
             // Read other new inputs
-            thrust = getThrust(); // a value from 0 to 1
-            frequency = getFrequency(); 
-            periodHalf = getPeriodHalf();
+            thrust = newThrust; // a value from 0 to 1
+            frequency = newFrequency;
+            periodHalf = newPeriodHalf;
             // Adjust thrust if needed
             if(yaw < 0.0)
                 thrustCommand = (1.0 + 0.75*yaw)*thrust; // 0.7 can be adjusted to a power of 2 if needed
@@ -184,7 +177,7 @@ void FishController::tickerCallback()
     }
 
     // Update the servos
-    pitch = getPitch();
+    pitch = newPitch;
     servoLeft = pitch - 0.05; // The 0.03 calibrates the angles of the servo
     servoRight = (1.0 - pitch) < 0.03 ? 0.03 : (1.0 - pitch);
 
@@ -222,8 +215,6 @@ void FishController::tickerCallback()
 //    //printDebugState();
 //    #endif
     //printf("%f\n", dutyCycle);
-    streamCurFishState = getCurStateWord;
-    //printf("%d %d\n", streamCurFishState, newPitchIndex);
     inTickerCallback = false;
 }
 
@@ -239,66 +230,78 @@ void FishController::buttonCallback(char button, bool pressed, char state) // st
         return;
         
     DigitalOut* simBatteryLow;
+    float newYaw, newThrust, newPitch;
     switch(state)
     {
         case BTTN_YAW_LEFT:
-            if(fishController.newYawIndex >= 0 && fishController.newYawIndex <= 3)
-                fishController.newYawIndex = 1;
-            else if(fishController.newYawIndex >= 4 && fishController.newYawIndex <= 6)
-				fishController.newYawIndex = 3;
-            streamFishStateEvent = 6;
+        	newYaw = fishController.newYaw;
+        	newYaw -= 0.5;
+        	newYaw = newYaw < -1 ? -1 : newYaw;
+        	fishController.setYaw(newYaw);
+            fishController.streamFishStateEventController = 6;
             break;
         case BTTN_YAW_RIGHT:
-            //if(fishController.newYawIndex < 6)
-            //    fishController.newYawIndex++;
-            if(fishController.newYawIndex >= 3 && fishController.newYawIndex <= 6)
-				fishController.newYawIndex = 5;
-			else if(fishController.newYawIndex >= 0 && fishController.newYawIndex <= 2)
-				fishController.newYawIndex = 3;
-            streamFishStateEvent = 7;
+        	newYaw = fishController.newYaw;
+			newYaw += 0.5;
+			newYaw = newYaw > 1 ? 1 : newYaw;
+			fishController.setYaw(newYaw);
+            fishController.streamFishStateEventController = 7;
             break;
         case BTTN_FASTER:
-            if(fishController.newThrustIndex < 3)
-                fishController.newThrustIndex++;
-            streamFishStateEvent = 8;
+        	newThrust = fishController.newThrust;
+        	newThrust += 0.2;
+        	newThrust = newThrust > 0.8 ? 0.8 : newThrust;
+        	fishController.setThrust(newThrust);
+            fishController.streamFishStateEventController = 8;
             break;
         case BTTN_SLOWER:
-            if(fishController.newThrustIndex > 0)
-                fishController.newThrustIndex--;
-            streamFishStateEvent = 9;
+        	newThrust = fishController.newThrust;
+			newThrust -= 0.2;
+			newThrust = newThrust < 0 ? 0 : newThrust;
+			fishController.setThrust(newThrust);
+            fishController.streamFishStateEventController = 9;
             break;
         case BTTN_PITCH_UP:
-            if(fishController.newPitchIndex < 6)
-                fishController.newPitchIndex++;
-            streamFishStateEvent = 10;
+        	newPitch = fishController.newPitch;
+        	newPitch += 0.2;
+        	newPitch = newPitch > 0.8 ? 0.8 : newPitch;
+        	fishController.setPitch(newPitch);
+            fishController.streamFishStateEventController = 10;
             break;
         case BTTN_PITCH_DOWN:
-            if(fishController.newPitchIndex > 0)
-                fishController.newPitchIndex--;
-            streamFishStateEvent = 11;
+        	newPitch = fishController.newPitch;
+			newPitch -= 0.2;
+			newPitch = newPitch < 0 ? 0 : newPitch;
+			fishController.setPitch(newPitch);
+            fishController.streamFishStateEventController = 11;
             break;
-        case BTTN_SHUTDOWN_PI:
-        	streamFishStateEvent = 12;
-            simBatteryLow = new DigitalOut(p26);
+        case BTTN_SHUTDOWN_PI: // signal a low battery signal to trigger the pi to shutdown
+        	fishController.streamFishStateEventController = 12;
+            simBatteryLow = new DigitalOut(lowBatteryVoltagePin);
             simBatteryLow->write(0);
             break;
         case BTTN_RESET_MBED:
-        	streamFishStateEvent = 13;
+        	fishController.streamFishStateEventController = 13; // ... if you see this, it didn't happen :)
             mbed_reset();
             break;
         case BTTN_AUTO_MODE:
-        	streamFishStateEvent = 14;
+        	fishController.streamFishStateEventController = 14;
         	fishController.autoMode = !fishController.autoMode;
         	if(fishController.autoMode)
         		fishController.setLEDs(21, true);
         	else
         	{
         		fishController.setLEDs(255, false);
-        		fishController.processAcousticWord(0x0236);
+        		// Auto mode was terminated - put fish into a neutral position
+        		fishController.setSelectButton(resetSelectButtonValue);
+        		fishController.setPitch(resetPitchValue);
+        		fishController.setYaw(resetYawValue);
+        		fishController.setThrust(resetThrustValue);
+        		fishController.setFrequency(resetFrequencyValue, resetPeriodHalfValue);
         	}
         	break;
         default:
-        	streamFishStateEvent = 15;
+        	fishController.streamFishStateEventController = 15;
         	break;
     }
 }

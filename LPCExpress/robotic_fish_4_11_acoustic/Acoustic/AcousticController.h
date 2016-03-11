@@ -15,7 +15,7 @@
 //       To stream the log info used in Fiji, just define streamAcousticControlLog - these are not human-readable streams
 //       To view the data as it's being received/decoded, define streamData (or streamSignalLevel for signal level) - these are human-readable streams
 //       To view a data summary (ex. number of buffers processed, words received, etc.) define printBufferSummary
-#define defaultBaudUSB 921600 // 921600 for fish deployment (to be fast enough to keep up with data stream)
+#define defaultBaudUSB 921600 // IMPORTANT: must be 921600 when using streaAcousticControlLog (to be fast enough to keep up with data stream)
 #define printBufferSummary    // print a summary of how many buffers were processed, the last computed tone powers, etc. once the controller is stopped
 /* SEE ALSO: streamAcousticControlLog, defined in ToneDetector.h
    If defined, will update the following (see end of processTonePowers for how they're packaged):
@@ -35,8 +35,8 @@
 
 UPDATE:
 
-  acousticControlLogToStream[4] has been deprecated and replaced with streamFishStateEvent and streamCurFishState
-  streamFishStateEvent can have the following values:
+  acousticControlLogToStream[4] has been deprecated and replaced with streamCurFishStateEventAcoustic and streamCurFishStateAcoustic
+  streamCurFishStateEventAcoustic can have the following values:
 	  1: erroneously missed a bit
 	  2: erroneously added a bit
 	  3: detected an uncorrectable error in the Hamming decoding
@@ -67,7 +67,7 @@ UPDATE:
 #define fishTimeoutAcoustic   // whether to reset the fish to neutral if an acoustic word hasn't been received in a while.  Not used with singleDataStream.
 #define fishTimeoutAcousticWindow 5000000 // time between good words that cause a timeout (in microseconds)
 
-//#define acousticControllerControlFish // whether to start fishController to control the servos and motor
+#define acousticControllerControlFish // whether to start fishController to control the servos and motor
 
 #define useAGC        // if undefined, will only set agc (adjustable gain control of the acoustic input board) once at startup
 //#define AGCLeds     // if defined, will light the mBed LEDs to indicate the chosen agc gain index (whether or not useAGC is on)
@@ -79,10 +79,10 @@ UPDATE:
 #define threshold2
 
 // ===== PINS =====
-#define lowBatteryVoltagePin p26
 #define agcPin0 p16
 #define agcPin1 p17
 #define agcPin2 p18
+// note lowBatteryVoltagePin is defined in FishController
 
 // ===== Sampling / Thresholding configuration =====
 // 20 bps (5/45 ms tone/silence)
@@ -115,6 +115,15 @@ UPDATE:
 #define interWordWait 300  // how many buffers of silence to expect between words
 #endif
 
+// ===== Macros for extracting state from data words =====
+#define getSelectIndexAcoustic(d)     ((d & (1 << 0)) >> 0)
+#define getPitchIndexAcoustic(d)      ((d & (7 << 1)) >> 1)
+#define getYawIndexAcoustic(d)        ((d & (7 << 4)) >> 4)
+#define getThrustIndexAcoustic(d)     ((d & (3 << 7)) >> 7)
+#define getFrequencyIndexAcoustic(d)  ((d & (3 << 9)) >> 9)
+
+#define getCurStateWordAcoustic (uint16_t)((uint16_t)newSelectButtonIndex + ((uint16_t)newPitchIndex << 1) + ((uint16_t)newYawIndex << 4) + ((uint16_t)newThrustIndex << 7) + ((uint16_t)newFrequencyIndex << 9));
+
 class AcousticController
 {
 	public:
@@ -134,8 +143,8 @@ class AcousticController
 		Serial* usbSerial;
 
 		#ifndef singleDataStream
-		// Use Hamming code to decode the data word and check for an error
-		void decodeAcousticWord(volatile bool* data);
+		void decodeAcousticWord(volatile bool* data);  // Use Hamming code to decode the data word and check for an error
+		void processAcousticWord(uint16_t word);       // Parse the decoded word into the various fish states
 		#endif
 
 		// TODO check what actually needs to be volatile
@@ -223,6 +232,15 @@ class AcousticController
 		    FILE* finPowers;
 		    int32_t nextPowers[numTones];
 		#endif
+		volatile uint16_t streamCurFishStateAcoustic; // the current state of the fish
+		volatile uint16_t streamCurFishStateEventAcoustic; // events such as decoding words, errors, etc.
+
+		// Fish state extracted from acoustic data word (index into lookup tables defined above)
+		volatile uint8_t newSelectButtonIndex;
+		volatile uint8_t newPitchIndex;
+		volatile uint8_t newYawIndex;
+		volatile uint8_t newThrustIndex;
+		volatile uint8_t newFrequencyIndex;
 };
 
 
