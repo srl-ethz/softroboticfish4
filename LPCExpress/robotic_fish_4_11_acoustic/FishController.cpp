@@ -39,7 +39,7 @@ FishController::FishController() :
     newThrust = resetThrustValue;
     newFrequency = resetFrequencyValue;
     newPeriodHalf = resetPeriodHalfValue;
-    
+
     selectButton = newSelectButton;
     pitch = newPitch;
     yaw = newYaw;
@@ -49,7 +49,7 @@ FishController::FishController() :
     periodHalf = newPeriodHalf;
     dutyCycle = 0;
     brushlessOff = false;
-    
+
     buttonBoard.registerCallback(&FishController::buttonCallback);
     buttonBoard.setLEDs(255, false);
 }
@@ -81,7 +81,7 @@ void FishController::start()
     //timemotor.stop();
     //printf("Setting took %d us\n", timemotor.read_us());
     //wait_ms(3000); // to arm brushless motor
-    
+
     // Blink button board LEDs to indicate startup
     for(uint8_t i = 0; i < 3; i++)
     {
@@ -90,7 +90,7 @@ void FishController::start()
         buttonBoard.setLEDs(255, false);
         wait_ms(500);
     }
-    
+
     // Start control ticker callback
     ticker.attach_us(&fishController, &FishController::tickerCallback, tickerInterval);
 //    #ifdef debugFishState
@@ -104,7 +104,7 @@ void FishController::stop()
     while(inTickerCallback); // wait for commands to settle
     ticker.detach(); // stop updating commands
     wait_ms(5);      // wait a bit to make sure it stops
-    
+
     // Reset fish state to neutral
     newSelectButton = resetSelectButtonValue;
     newPitch = resetPitchValue;
@@ -120,37 +120,37 @@ void FishController::stop()
     }
     // Make sure commands are sent to motors and applied
     wait(1);
-    
+
     // Put dive planes in a weird position to indicate stopped
     servoLeft = 0.3;
     servoRight = 0.3;
-    
+
     // Light the LEDs to indicate termination
     buttonBoard.setLEDs(255, true);
 }
 
 //============================================
 // Processing
-//============================================ 
+//============================================
 void FishController::tickerCallback()
 {
     inTickerCallback = true; // so we don't asynchronously stop the controller in a bad point of the cycle
-    
+
     // get the current elapsed time since last reset (us)
-    curTime += tickerInterval; 
+    curTime += tickerInterval;
 
     // see if brushless should be shut down
     brushlessOff = curTime > (periodHalf-brushlessOffTime);
-    
+
     // update every half cycle
-    if(curTime > periodHalf) 
-    { 
+    if(curTime > periodHalf)
+    {
         // read new yaw value every half cycle
         yaw = newYaw; // a value from -1 to 1
 
         // Read frequency only every full cycle
-        if(fullCycle) 
-        { 
+        if(fullCycle)
+        {
             // Read other new inputs
             thrust = newThrust; // a value from 0 to 1
             frequency = newFrequency;
@@ -161,8 +161,8 @@ void FishController::tickerCallback()
             else
             	thrustCommand = thrust;
             fullCycle = false;
-        } 
-        else 
+        }
+        else
         {
             // Reverse for the downward slope
             if(yaw > 0.0)
@@ -193,13 +193,13 @@ void FishController::tickerCallback()
     if(dutyCycle < 0 && dutyCycle > -0.01)
         dutyCycle = 0;
     // Update the brushed motor
-    if(dutyCycle >= 0) 
+    if(dutyCycle >= 0)
     {
         motorOutA.write(0);
         motorOutB.write(1);
         motorPWM.write(dutyCycle);
     }
-    else 
+    else
     {
         motorOutA.write(1);
         motorOutB.write(0);
@@ -209,8 +209,8 @@ void FishController::tickerCallback()
     //brushlessMotor = dutyCycle * !brushlessOff;
     //brushlessMotor.pulsewidth_us(dutyCycle*500+1500);
     //brushlessMotor();
-    
-    
+
+
 //    #ifdef debugFishState
 //    //printDebugState();
 //    #endif
@@ -228,7 +228,7 @@ void FishController::buttonCallback(char button, bool pressed, char state) // st
     // Only act on button presses (not releases)
     if(!pressed)
         return;
-        
+
     DigitalOut* simBatteryLow;
     float newYaw, newThrust, newPitch;
     switch(state)

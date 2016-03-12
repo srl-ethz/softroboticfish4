@@ -93,7 +93,7 @@ class FishController
         volatile bool fullCycle;
         const float raiser;
         volatile bool inTickerCallback;
-        
+
         // Outputs for motor and servos
         PwmOut motorPWM;
         DigitalOut motorOutA;
@@ -102,7 +102,7 @@ class FishController
         Servo servoRight;
         //PwmOut brushlessMotor;
         const uint32_t brushlessOffTime;
-        
+
         // Button control
         ButtonBoard buttonBoard;
         static void buttonCallback(char button, bool pressed, char state);

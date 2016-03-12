@@ -1,6 +1,6 @@
 /**
  * Author: Joseph DelPreto
- * A class for sampling a signal and detecting whether certain frequencies are present 
+ * A class for sampling a signal and detecting whether certain frequencies are present
  * Implements the Goertzel algorithm for tone detection
  *   Uses fixed-point arithmetic to a > 10x speedup over a floating-point implementation
  *   Uses Q15 number format
@@ -9,7 +9,7 @@
  * Can set a callback function to be called at the end of each buffer processing to see the relative powers of each target tone
  *   Make sure the callback function execution time, plus the time to process a buffer of samples, takes less time than it takes to acquire the buffer!
  *   You can check how long it takes to process a buffer of samples by enabling "timeProcess" below then using initProcessTimer() and getProcessTimes()
- * 
+ *
  * Debugging options such as LEDs to indicate status are also available
  * Can also choose to time each processing stage to ensure it is not taking longer the time needed to acquire the buffer of samples
  * Can also record samples and write them to a file (max 1000 will be recorded)
@@ -19,12 +19,12 @@
  *   LED3 turns on when processing starts and off when it finishes (so lower duty cycle is better)
  *   LED4 turns on when tone detection is stopped (and then other LEDs turn off)
  * Debug pins will go high/low in same pattern as described above for LEDs, but using pins p5-p8
- * 
+ *
  * Test mode can be enabled, in which case samples can be artificially generated instead of using the ADC
  *
  * Currently only set up for one instance of ToneDetector to be in operation
  *   Use the object toneDetector, declared in this file, for all of your tone detecting needs!
- * 
+ *
  */
 
 #ifndef TONE_DETECTOR_H
@@ -109,7 +109,7 @@ class ToneDetector
         // Sampling / Processing (these are public to allow DMA callbacks to access them)
         volatile bool fillingBuffer0;    // Whether sampling is currently writing to buffer 0 or buffer 1
         volatile bool transferComplete;  // Signals that samplesProcessing is ready to be processed
-        uint32_t sampleBuffer0[sampleWindow];         // Buffer of samples used by one DMA operation 
+        uint32_t sampleBuffer0[sampleWindow];         // Buffer of samples used by one DMA operation
         uint32_t sampleBuffer1[sampleWindow];         // Buffer of samples used by second DMA operation
         volatile uint32_t* samplesWriting;    // Pointer to the buffer to which we should write (alternates between buffer0 and buffer1)
         volatile uint32_t* samplesProcessing; // Pointer to the buffer which we should process (alternates between buffer0 and buffer1)
@@ -117,7 +117,7 @@ class ToneDetector
         #ifndef artificialSamplesMode
         MODDMA dma;  // DMA controller
         #endif
-        
+
     private:
         // Initialization
         bool readyToBegin;              // Whether sample window, sample interval, and tones have all been specified
@@ -127,7 +127,7 @@ class ToneDetector
         void startDMA();
         void startADC();
         #endif
-        // Sampling 
+        // Sampling
         // Goertzel Processing (arrays will have an element per desired tone)
         //   Tone detecting
         int32_t goertzelCoefficients[numTones];  // Pre-computed coefficients based on target tones
@@ -143,7 +143,7 @@ class ToneDetector
         Ticker sampleTicker;            // Triggers a sample to be read from the pre-filled array
         void initTestModeSamples();     // Creates the samples, either from a file or by summing tones
         void tickerCallback();          // Called each time a sample is read
-        uint32_t* testSamples;          // Array of pre-stored sample values to use 
+        uint32_t* testSamples;          // Array of pre-stored sample values to use
         uint16_t numTestSamples;        // Length of the testSamples array (need not be same as buffer length)
         volatile uint16_t testSampleIndex;  // Current index into testSamples
         volatile uint16_t sampleIndex;  // Index into current sample buffer
@@ -165,7 +165,7 @@ void TC0_callback();    // Callback for when DMA channel 0 has filled a buffer
 void ERR0_callback();   // Error on dma channel 0
 
 // Create a static instance of ToneDetector to be used by anyone doing detection
-//   This allows the ticker callback to be a member function 
+//   This allows the ticker callback to be a member function
 extern ToneDetector toneDetector;
 #ifdef streamAcousticControlLog
 extern int32_t acousticControlLogToStream[5]; // goertzel powers f1, goerztel powers f2, signal level, gain, events (events is deprecated)
