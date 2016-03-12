@@ -3,8 +3,8 @@
  * Author: Joseph DelPreto
  */
 
-#ifndef ACOUSTIC_ACOUSTICCONTROLLER_H_
-#define ACOUSTIC_ACOUSTICCONTROLLER_H_
+#ifndef ACOUSTICCONTROL_ACOUSTICCONTROLLER_H_
+#define ACOUSTICCONTROL_ACOUSTICCONTROLLER_H_
 
 #include "ToneDetector.h"
 #include "FishController.h"
