@@ -9,5 +9,9 @@ sudo python /home/pi/fish/python/rx_controller.py &
 #sudo /home/pi/fish/startup_rx_serial.sh &
 echo "-- Starting Joystick Controller"
 sudo python /home/pi/fish/python/bluetooth_joystick/FishJoystickController.py &
+sleep 5
+sudo /home/pi/fish/killFishJoystick.sh 
+sleep 3
+sudo python /home/pi/fish/python/bluetooth_joystick/FishJoystickController.py &
 echo "- Startup script complete"
 

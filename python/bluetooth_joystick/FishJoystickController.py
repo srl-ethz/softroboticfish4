@@ -37,6 +37,7 @@ class FishJoystickController:
 
 if __name__ == '__main__':
   import sys
+  
   try:
     mbedUpdateInterval = float(sys.argv[1])
   except:
