@@ -12,18 +12,6 @@
 #define BTTN_COUNT_BOARD_2  6
 #define BTTN_COUNT          (BTTN_COUNT_BOARD_1 + BTTN_COUNT_BOARD_2)
 
-// Commented indexes go from top left (0) to bottom right (5)
-#define BTTN_FASTER      1  // 2
-#define BTTN_SLOWER      2  // 1
-#define BTTN_YAW_LEFT    4  // 0
-#define BTTN_YAW_RIGHT   8  // 5
-#define BTTN_PITCH_UP    16 // 4 // swims down
-#define BTTN_PITCH_DOWN  32 // 3 // swims up
-#define BTTN_RESET_MBED  36 // 0 and 3
-#define BTTN_SHUTDOWN_PI 9  // 2 and 5
-//#define BTTN_AUTO_MODE   18 // 1 and 4
-#define BTTN_AUTO_MODE   33 // 2 and 3
-
 class ButtonBoard
 {
 private:

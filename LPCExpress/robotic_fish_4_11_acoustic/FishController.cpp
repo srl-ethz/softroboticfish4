@@ -7,6 +7,11 @@ FishController fishController;
 // Function to reset mbed
 extern "C" void mbed_reset();
 
+// Auto mode
+float autoModeCommands[][4] = {FISH_STRAIGHT, FISH_LEFT, FISH_STRAIGHT, FISH_LEFT};
+uint32_t autoModeDurations[] = {4000, 2000, 2000, 2000}; // durations in milliseconds
+const uint8_t autoModeLength = sizeof(autoModeDurations)/sizeof(autoModeDurations[0]);
+
 //============================================
 // Initialization
 //============================================
@@ -15,6 +20,7 @@ extern "C" void mbed_reset();
 FishController::FishController() :
     // Initialize variables
 	autoMode(false),
+	ignoreExternalCommands(false),
     tickerInterval(fishControllerTickerInterval),
     curTime(0),
     fullCycle(true),
@@ -52,15 +58,57 @@ FishController::FishController() :
 
     buttonBoard.registerCallback(&FishController::buttonCallback);
     buttonBoard.setLEDs(255, false);
+
+    autoModeIndex = 0;
+    autoModeCount = 0;
 }
 
 // Set the desired state
 // They will take affect at the next appropriate time in the control cycle
-void FishController::setSelectButton(bool newSelectButtonValue) {newSelectButton = newSelectButtonValue;}
-void FishController::setPitch(float newPitchValue) {newPitch = newPitchValue;}
-void FishController::setYaw(float newYawValue) {newYaw = newYawValue;}
-void FishController::setThrust(float newThrustValue) {newThrust = newThrustValue;}
-void FishController::setFrequency(float newFrequencyValue, float newPeriodHalfValue) {newFrequency = newFrequencyValue; newPeriodHalf = newPeriodHalfValue;}
+void FishController::setSelectButton(bool newSelectButtonValue, bool master /* = false*/)
+{
+	if(!ignoreExternalCommands || master)
+		newSelectButton = newSelectButtonValue;
+}
+void FishController::setPitch(float newPitchValue, bool master /* = false*/)
+{
+	if(!ignoreExternalCommands || master)
+	{
+		newPitch = newPitchValue;
+		setLEDs(BTTN_PITCH_UP,   (newPitch-fishMinPitch) > (fishMaxPitch - newPitch));
+		setLEDs(BTTN_PITCH_DOWN, (newPitch-fishMinPitch) < (fishMaxPitch - newPitch));
+	}
+}
+void FishController::setYaw(float newYawValue, bool master /* = false*/)
+{
+	if(!ignoreExternalCommands || master)
+	{
+		newYaw = newYawValue;
+		setLEDs(BTTN_YAW_LEFT,  (newYaw-fishMinYaw) < (fishMaxYaw - newYaw));
+		setLEDs(BTTN_YAW_RIGHT, (newYaw-fishMinYaw) > (fishMaxYaw - newYaw));
+	}
+}
+void FishController::setThrust(float newThrustValue, bool master /* = false*/)
+{
+	if(!ignoreExternalCommands || master)
+	{
+		newThrust = newThrustValue;
+		setLEDs(BTTN_FASTER, newThrust>fishMinThrust);
+		// If we're in button-control mode, keep the no-thrust light on as an indicator
+		if(!ignoreExternalCommands)
+			setLEDs(BTTN_SLOWER, newThrust==fishMinThrust);
+		else
+			setLEDs(BTTN_SLOWER, true);
+	}
+}
+void FishController::setFrequency(float newFrequencyValue, float newPeriodHalfValue /* = -1 */, bool master /* = false*/)
+{
+	if(!ignoreExternalCommands || master)
+	{
+		newFrequency = newFrequencyValue;
+		newPeriodHalf = newPeriodHalfValue > -1 ? newPeriodHalfValue : (1.0/(2.0*newFrequency));
+	}
+}
 // Get the (possible pending) state
 bool FishController::getSelectButton() {return newSelectButton;}
 float FishController::getPitch() {return newPitch;}
@@ -215,6 +263,7 @@ void FishController::tickerCallback()
 //    //printDebugState();
 //    #endif
     //printf("%f\n", dutyCycle);
+    //printf("%f %f\r\n", pitch, servoLeft.read());
     inTickerCallback = false;
 }
 
@@ -235,44 +284,44 @@ void FishController::buttonCallback(char button, bool pressed, char state) // st
     {
         case BTTN_YAW_LEFT:
         	newYaw = fishController.newYaw;
-        	newYaw -= 0.5;
-        	newYaw = newYaw < -1 ? -1 : newYaw;
-        	fishController.setYaw(newYaw);
+        	newYaw -= (fishMaxYaw - fishMinYaw)/4.0;
+        	newYaw = newYaw < fishMinYaw ? fishMinYaw : newYaw;
+        	fishController.setYaw(newYaw, true);
             fishController.streamFishStateEventController = 6;
             break;
         case BTTN_YAW_RIGHT:
         	newYaw = fishController.newYaw;
-			newYaw += 0.5;
-			newYaw = newYaw > 1 ? 1 : newYaw;
-			fishController.setYaw(newYaw);
+			newYaw += (fishMaxYaw - fishMinYaw)/4.0;
+			newYaw = newYaw > fishMaxYaw ? fishMaxYaw : newYaw;
+			fishController.setYaw(newYaw, true);
             fishController.streamFishStateEventController = 7;
             break;
         case BTTN_FASTER:
         	newThrust = fishController.newThrust;
-        	newThrust += 0.2;
-        	newThrust = newThrust > 0.8 ? 0.8 : newThrust;
-        	fishController.setThrust(newThrust);
+        	newThrust += (fishMaxThrust - fishMinThrust)/4.0;
+        	newThrust = newThrust > fishMaxThrust ? fishMaxThrust : newThrust;
+        	fishController.setThrust(newThrust, true);
             fishController.streamFishStateEventController = 8;
             break;
         case BTTN_SLOWER:
         	newThrust = fishController.newThrust;
-			newThrust -= 0.2;
-			newThrust = newThrust < 0 ? 0 : newThrust;
-			fishController.setThrust(newThrust);
+			newThrust -= (fishMaxThrust - fishMinThrust)/4.0;
+			newThrust = newThrust < fishMinThrust ? fishMinThrust : newThrust;
+			fishController.setThrust(newThrust, true);
             fishController.streamFishStateEventController = 9;
             break;
         case BTTN_PITCH_UP:
         	newPitch = fishController.newPitch;
-        	newPitch += 0.2;
-        	newPitch = newPitch > 0.8 ? 0.8 : newPitch;
-        	fishController.setPitch(newPitch);
+        	newPitch += (fishMaxPitch - fishMinPitch)/4.0;
+        	newPitch = newPitch > fishMaxPitch ? fishMaxPitch : newPitch;
+        	fishController.setPitch(newPitch, true);
             fishController.streamFishStateEventController = 10;
             break;
         case BTTN_PITCH_DOWN:
         	newPitch = fishController.newPitch;
-			newPitch -= 0.2;
-			newPitch = newPitch < 0 ? 0 : newPitch;
-			fishController.setPitch(newPitch);
+			newPitch -= (fishMaxPitch - fishMinPitch)/4.0;
+			newPitch = newPitch < fishMinPitch ? fishMinPitch : newPitch;
+			fishController.setPitch(newPitch, true);
             fishController.streamFishStateEventController = 11;
             break;
         case BTTN_SHUTDOWN_PI: // signal a low battery signal to trigger the pi to shutdown
@@ -286,24 +335,72 @@ void FishController::buttonCallback(char button, bool pressed, char state) // st
             break;
         case BTTN_AUTO_MODE:
         	fishController.streamFishStateEventController = 14;
-        	fishController.autoMode = !fishController.autoMode;
         	if(fishController.autoMode)
-        		fishController.setLEDs(21, true);
+        		fishController.stopAutoMode();
         	else
-        	{
-        		fishController.setLEDs(255, false);
-        		// Auto mode was terminated - put fish into a neutral position
-        		fishController.setSelectButton(resetSelectButtonValue);
-        		fishController.setPitch(resetPitchValue);
-        		fishController.setYaw(resetYawValue);
-        		fishController.setThrust(resetThrustValue);
-        		fishController.setFrequency(resetFrequencyValue, resetPeriodHalfValue);
-        	}
+        		fishController.startAutoMode();
+        	break;
+        case BTTN_BTTN_MODE:
+        	fishController.setIgnoreExternalCommands(!fishController.getIgnoreExternalCommands());
         	break;
         default:
         	fishController.streamFishStateEventController = 15;
         	break;
     }
+}
+
+void FishController::setIgnoreExternalCommands(bool ignore)
+{
+	ignoreExternalCommands = ignore;
+}
+
+bool FishController::getIgnoreExternalCommands()
+{
+	return ignoreExternalCommands;
+}
+
+void FishController::startAutoMode()
+{
+	// Start ignoring external commands so as not to interfere with auto mode
+	// But remember what the previous setting was so we can restore it after auto mode
+	ignoreExternalCommandsPreAutoMode = ignoreExternalCommands;
+	setIgnoreExternalCommands(true);
+	// Reset state
+	autoModeCount = 0;
+	autoModeIndex = 0;
+	// Start executing the auto loop
+	autoMode = true;
+	autoModeTicker.attach_us(&fishController, &FishController::autoModeCallback, 10000);
+}
+
+void FishController::stopAutoMode()
+{
+	autoModeTicker.detach();
+	// Auto mode was terminated - put fish into a neutral position
+	setSelectButton(resetSelectButtonValue, true);
+	setPitch(resetPitchValue, true);
+	setYaw(resetYawValue, true);
+	setThrust(resetThrustValue, true);
+	setFrequency(resetFrequencyValue, resetPeriodHalfValue, true);
+	// Restore external mode to what is was previously
+	setIgnoreExternalCommands(ignoreExternalCommandsPreAutoMode);
+	autoMode = false;
+}
+
+void FishController::autoModeCallback()
+{
+	// Assign the current state (stored as pitch, yaw, thrust, frequency)
+	setPitch(autoModeCommands[autoModeIndex][0], true);
+	setYaw(autoModeCommands[autoModeIndex][1], true);
+	setThrust(autoModeCommands[autoModeIndex][2], true);
+	setFrequency(autoModeCommands[autoModeIndex][3], 1.0/(2.0*autoModeCommands[autoModeIndex][3]), true);
+	// See if we advance to the next command
+	autoModeCount++;
+	if(autoModeCount*10 > autoModeDurations[autoModeIndex])
+	{
+		autoModeCount = 0;
+		autoModeIndex = (autoModeIndex+1) % autoModeLength; // loop continuously through commands
+	}
 }
 
 //#ifdef debugFishState

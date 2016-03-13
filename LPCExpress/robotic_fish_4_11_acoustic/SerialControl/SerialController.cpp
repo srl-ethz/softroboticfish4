@@ -30,23 +30,28 @@ void SerialController::init(Serial* serialObject /* = NULL */, Serial* usbSerial
 	// Create serial object or use provided one
 	if(serialObject == NULL)
 	{
-		serialObject = new Serial(defaultTX, defaultRX);
-		serialObject->baud(defaultBaud);
+		serialObject = new Serial(serialDefaultTX, serialDefaultRX);
+		serialObject->baud(serialDefaultBaud);
 	}
 	serial = serialObject;
 	// Create usb serial object or use provided one
 	if(usbSerialObject == NULL)
 	{
 		usbSerialObject = new Serial(USBTX, USBRX);
-		usbSerialObject->baud(defaultBaudUSB);
+		usbSerialObject->baud(serialDefaultBaudUSB);
 	}
 	usbSerial = usbSerialObject;
 
 	// Will check for low battery at startup and using an interrupt
 	lowBatteryVoltageInput = new DigitalIn(lowBatteryVoltagePin);
 	lowBatteryVoltageInput->mode(PullUp);
-	lowBatteryInterrupt = new InterruptIn(lowBatteryVoltagePin);
-	lowBatteryInterrupt->fall(lowBatteryCallbackSerialStatic);
+	// NOTE Switching to polling instead of interrupt
+	// since it seems like the low battery detector chip may have spurious falls
+	// that cause the interrupt to trigger when the battery isn't actually low
+	//lowBatteryInterrupt = new InterruptIn(lowBatteryVoltagePin);
+	//lowBatteryInterrupt->fall(lowBatteryCallbackSerialStatic);
+	detectedLowBattery = false;
+	lowBatteryTicker.attach(&lowBatteryCallbackSerialStatic, 5);
 
 	#ifdef debugLEDsSerial
 	serialLEDs[0]->write(1);
@@ -63,7 +68,7 @@ void SerialController::init(Serial* serialObject /* = NULL */, Serial* usbSerial
 void SerialController::processSerialWord(uint8_t* word)
 {
 	// Scale the bytes into the desired ranges for each property
-	bool selectButton = word[0];
+	bool selectButton = (word[0] > 127);
 	float pitch = word[1];
 	pitch = ((pitch-1) * (serialMaxPitch - serialMinPitch) / 254.0) + serialMinPitch;
 
@@ -84,7 +89,8 @@ void SerialController::processSerialWord(uint8_t* word)
 	fishController.setFrequency(frequency, 1.0/(2.0*frequency));
 
 	#ifdef printStatusSerialController
-	usbSerial->printf("Processed %s\n", word);
+	//usbSerial->printf("Processed <%s>: ", word);
+	usbSerial->printf("Start %d\t Pitch %f\t Yaw %f\t Thrust %f\t Freq %.8f\r\n", selectButton, pitch, yaw, thrust, frequency);
 	#endif
 }
 
@@ -105,12 +111,13 @@ void SerialController::run()
     fishController.start();
     #endif
 
+    // Moved to ticker instead of interrupt (see comments in init), so don't need this check
     // Check for low battery voltage (also have the interrupt, but check that we're not starting with it low)
-	if(lowBatteryVoltageInput == 0)
-		lowBatteryCallback();
+	//if(lowBatteryVoltageInput == 0)
+	//	lowBatteryCallback();
 
 	#ifdef printStatusSerialController
-	usbSerial->printf("\nStarting to listen for serial commands\n");
+	usbSerial->printf("\r\nStarting to listen for serial commands 2\r\n");
 	#endif
 
 	#ifdef debugLEDsSerial
@@ -148,7 +155,7 @@ void SerialController::run()
 			#endif
 		}
 		#ifndef infiniteLoopSerial
-		if(programTimer.read_ms() > runTime)
+		if(programTimer.read_ms() > runTimeSerial)
 			stop();
 		#endif
 	}
@@ -172,26 +179,33 @@ void SerialController::run()
     #endif
 
 	#ifdef printStatusSerialController
-	usbSerial->printf("\nSerial controller done!\n");
+	usbSerial->printf("\r\nSerial controller done!\r\n");
 	#endif
 }
 
 
 void SerialController::lowBatteryCallback()
 {
-//    // Stop the serial controller
-//    // This will end the main loop, causing main to terminate
-//    // Main will also stop the fish controller once this method ends
-//    stop();
-//    // Also force the pin low to signal the Pi
-//    // (should have already been done, but just in case)
-//    // TODO check that this really forces it low after this method ends and the pin object may be deleted
-//    DigitalOut simBatteryLow(lowBatteryVoltagePin);
-//    simBatteryLow = 0;
-//	#ifdef printStatusSerialController
-//    usbSerial->printf("\nLow battery! Shutting down.\n");
-//    wait(0.5); // wait for the message to actually flush
-//	#endif
+	if(lowBatteryVoltageInput == 0 && detectedLowBattery)
+	{
+		// Stop the serial controller
+		// This will end the main loop, causing main to terminate
+		// Main will also stop the fish controller once this method ends
+		stop();
+		// Also force the pin low to signal the Pi
+		// (should have already been done, but just in case)
+		// TODO check that this really forces it low after this method ends and the pin object may be deleted
+		DigitalOut simBatteryLow(lowBatteryVoltagePin);
+		simBatteryLow = 0;
+		#ifdef printStatusSerialController
+		usbSerial->printf("\r\nLow battery! Shutting down.\r\n");
+		wait(0.5); // wait for the message to actually flush
+		#endif
+	}
+	else if(lowBatteryVoltageInput == 0)
+	{
+		detectedLowBattery = true;
+	}
 }
 
 

@@ -23,6 +23,24 @@
 #define resetThrustValue       0
 #define resetFrequencyValue    0.0000012 // cycles/us
 #define resetPeriodHalfValue   416666    // 1/(2*frequency) -> us
+// Value ranges
+#define fishMinPitch     ((float)(0.2))
+#define fishMaxPitch     ((float)(0.8))
+#define fishMinYaw       ((float)(-1.0))
+#define fishMaxYaw       ((float)(1.0))
+#define fishMinThrust    ((float)(0.0))
+#define fishMaxThrust    ((float)(0.75))
+#define fishMinFrequency ((float)(0.0000009))
+#define fishMaxFrequency ((float)(0.0000016))
+// Preset states for auto mode definition
+// Each one is pitch, yaw, thrust, frequency
+#define FISH_STRAIGHT 	{resetPitchValue, resetYawValue	, (fishMaxThrust + fishMinThrust)/2.0	, (fishMaxFrequency + fishMinFrequency)/2.0}
+#define FISH_UP 		{fishMaxPitch	, resetYawValue	, (fishMaxThrust + fishMinThrust)/2.0	, (fishMaxFrequency + fishMinFrequency)/2.0}
+#define FISH_DOWN 		{fishMinPitch	, resetYawValue	, (fishMaxThrust + fishMinThrust)/2.0	, (fishMaxFrequency + fishMinFrequency)/2.0}
+#define FISH_LEFT 		{resetPitchValue, fishMaxYaw	, (fishMaxThrust + fishMinThrust)/2.0	, (fishMaxFrequency + fishMinFrequency)/2.0}
+#define FISH_RIGHT 		{resetPitchValue, fishMinYaw	, (fishMaxThrust + fishMinThrust)/2.0	, (fishMaxFrequency + fishMinFrequency)/2.0}
+#define FISH_STOP 		{resetPitchValue, resetYawValue	, resetThrustValue						, resetFrequencyValue}
+
 // Pins
 #define lowBatteryVoltagePin p26
 
@@ -36,6 +54,36 @@
 #define buttonBoardSCLPin  p10
 #define buttonBoardInt1Pin p29
 #define buttonBoardInt2Pin p30
+
+/* Button board commands
+  Commented indexes go from top left (0) to bottom right (5) as follows:
+                 /========================|
+  	  	  	   /   ____________________   |
+  	  	  	 /	  |	 (0:4) (1:2) (2:1) |  |
+  fish nose |     |(3:32) (4:16) (5:8) |  |  fish tail
+  	  	  	 \     --------------------|  |
+  	  	  	   \                          |
+  	  	  	     \========================|
+                 /=========================|
+  	  	  	   /   ______________________  |
+  	  	  	 /	  |	 (0:8) (1:16) (2:32) | |
+  fish nose |     |(3:1) (4:2) (5:4)     | |  fish tail
+  	  	  	 \     ----------------------| |
+  	  	  	   \                           |
+  	  	  	     \=========================|
+  The numbers after the colons are the values to use for that button
+*/
+#define BTTN_FASTER      1  // 3
+#define BTTN_SLOWER      2  // 4
+#define BTTN_YAW_LEFT    4  // 5
+#define BTTN_YAW_RIGHT   8  // 0
+#define BTTN_PITCH_UP    16 // 1 // swims down
+#define BTTN_PITCH_DOWN  32 // 2 // swims up
+#define BTTN_RESET_MBED  36 // 2 and 5
+#define BTTN_SHUTDOWN_PI 9  // 0 and 3
+#define BTTN_AUTO_MODE   33 // 2 and 3
+#define BTTN_BTTN_MODE   12 // 0 and 5
+
 
 class FishController
 {
@@ -54,13 +102,12 @@ class FishController
         #endif
         // LEDs
         void setLEDs(char mask, bool turnOn);
-        volatile bool autoMode;
         // Set New State (which will take affect at next appropriate point in control cycle)
-		void setSelectButton(bool newSelectButtonValue);
-		void setPitch(float newPitchValue);
-		void setYaw(float newYawValue);
-		void setThrust(float newThrustValue);
-		void setFrequency(float newFrequencyValue, float newPeriodHalfValue);
+		void setSelectButton(bool newSelectButtonValue, bool master = false);
+		void setPitch(float newPitchValue, bool master = false);
+		void setYaw(float newYawValue, bool master = false);
+		void setThrust(float newThrustValue, bool master = false);
+		void setFrequency(float newFrequencyValue, float newPeriodHalfValue = -1, bool master = false);
 		// Get (possible pending) State
 		bool getSelectButton();
 		float getPitch();
@@ -68,7 +115,17 @@ class FishController
 		float getThrust();
 		float getFrequency();
 		float getPeriodHalf();
+		// Auto mode
+		volatile bool autoMode;
+		void startAutoMode();
+		void stopAutoMode();
+		void autoModeCallback();
+
+		void setIgnoreExternalCommands(bool ignore);
+		bool getIgnoreExternalCommands();
     private:
+		// Misc State
+		volatile bool ignoreExternalCommands;
 		// State which will be applied at the next appropriate time in the control cycle
 		volatile bool newSelectButton;
 		volatile float newPitch;
@@ -106,6 +163,12 @@ class FishController
         // Button control
         ButtonBoard buttonBoard;
         static void buttonCallback(char button, bool pressed, char state);
+
+        // Auto mode
+        Ticker autoModeTicker;
+        uint32_t autoModeCount;
+        uint16_t autoModeIndex;
+        bool ignoreExternalCommandsPreAutoMode;
 };
 
 // Create a static instance of FishController to be used by anyone doing detection

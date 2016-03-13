@@ -14,15 +14,6 @@ const float thrustLookupAcoustic[] = {0, 0.25, 0.50, 0.75};
 const float frequencyLookupAcoustic[] = {0.0000009, 0.0000012, 0.0000014, 0.0000016}; // cycles/us // NOTE also update periodHalfLookup if you update these values
 const float periodHalfLookupAcoustic[] = {555555, 416666, 357142, 312500}; // 1/(2*frequencyLookup) -> us
 
-// Autonomous mode definition
-uint16_t autoModeCommands[] = {0x05B6 /* forward */, 0x05BC /*down*/, 0x05B6 /* forward */, 0x0586 /* left */,
-								0x05B6 /* forward */, 0x05E6 /* right */,  0x05B6 /* forward */,  0x05B0 /* up */,
-								0x05B6 /* forward */, 0x0236 /* stopped */};
-uint32_t autoModeDurations[] = {30000, 60000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 10000}; // durations in number of buffers
-const uint8_t autoModeLength = 10;
-volatile uint32_t autoModeCount;
-volatile uint32_t autoModeIndex;
-
 // AGC definition
 const uint8_t agcGains[] = {1, 1, 2, 5, 10, 20, 50, 100};  // the possible gains of the AGC
 const uint8_t agcGainsLength = sizeof(agcGains)/sizeof(agcGains[0]);
@@ -83,7 +74,7 @@ void AcousticController::init(Serial* usbSerialObject /* = NULL */)
 	if(usbSerialObject == NULL)
 	{
 		usbSerialObject = new Serial(USBTX, USBRX);
-		usbSerialObject->baud(defaultBaudUSB);
+		usbSerialObject->baud(serialDefaultBaudUSB);
 	}
 	usbSerial = usbSerialObject;
 	// Miscellaneous
@@ -195,28 +186,9 @@ void AcousticController::processTonePowers(int32_t* newTonePowers, uint32_t sign
         #endif
     }
     bufferCount++;
-    // See if we're in autonomous mode and if so update the command
+    // See if we're in autonomous mode and if so just let it be
     if(fishController.autoMode)
-    {
-    	processAcousticWord(autoModeCommands[autoModeIndex]);
-    	autoModeCount++;
-    	if(autoModeCount > autoModeDurations[autoModeIndex])
-    	{
-    		autoModeCount = 0;
-    		autoModeIndex++;
-    	}
-    	if(autoModeIndex >= autoModeLength)
-    	{
-    		fishController.autoMode = false;
-    		fishController.setLEDs(255, false);
-    	}
     	return;
-    }
-    else
-    {
-		autoModeCount = 0;
-		autoModeIndex = 0;
-    }
 
     periodIndex++;
     timeSinceGoodWord++;

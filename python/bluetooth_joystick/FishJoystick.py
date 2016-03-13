@@ -21,11 +21,13 @@ import traceback
 0.2 right
 '''
 
-class Joystick:
-  def __init__(self, device=0):
+class FishJoystick:
+  # useLJ is whether to alter state using the left joystick (as opposed to just using the D-pad)
+  def __init__(self, device=0, useLJ = True):
     self.dev = InputDevice(list_devices()[device])
     self._state = {}
     self._resetState()
+    self._useLJ = useLJ
     
     self._keynames = {
       'BTN_B'    : 'A',
@@ -75,14 +77,14 @@ class Joystick:
           #print 'ABS: %s (%s)' % (keyname, str(event.value))
         if None not in [keyname, keyvalue]:
           # Thrust
-          if keyname == 'LJY':
+          if keyname == 'LJY' and self._useLJ:
             self._state['thrust'] = max(255 - keyvalue, 1)
           elif keyname == 'DY' and keydown:
             self._state['thrust'] -= keyvalue*32
             self._state['thrust'] = max(self._state['thrust'], 1)
             self._state['thrust'] = min(self._state['thrust'], 255)
           # Frequency
-          if keyname == 'LJX':
+          if keyname == 'LJX' and self._useLJ:
             self._state['frequency'] = min(keyvalue+1, 255)
           elif keyname == 'DX' and keydown:
             self._state['frequency'] += keyvalue*32
@@ -120,18 +122,28 @@ class Joystick:
       pass
     return
 
-  def getStateBytes(self):
+  def getState(self):
+    return self._state.copy()
+
+  # resType can be 'bytearray' or 'list' or 'dict'
+  def getStateBytes(self, resType='byteArray', nullTerminate=True):
+    stateKeys = ['start', 'pitch', 'yaw', 'thrust', 'frequency']
+    if resType == 'dict':
+      res = [(key, int(self._state[key])) for key in stateKeys]
+      return dict(res)
     res = []
-    for key in ['start', 'pitch', 'yaw', 'thrust', 'frequency']:
-      res.append((int)self._state[key])
-    res.append(0)
+    res = [int(self._state[key]) for key in stateKeys]
+    if nullTerminate:
+      res.append(0)
+    if resType == 'bytearray':
+      res = bytearray(res)
     return res
 
 
 
 if __name__ == "__main__":
  
-  joystick = Joystick()
+  joystick = FishJoystick()
   
   lastSendTime = 0
   sendInterval = 0.5 # s

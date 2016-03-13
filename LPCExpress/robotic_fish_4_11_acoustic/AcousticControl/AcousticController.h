@@ -15,7 +15,7 @@
 //       To stream the log info used in Fiji, just define streamAcousticControlLog - these are not human-readable streams
 //       To view the data as it's being received/decoded, define streamData (or streamSignalLevel for signal level) - these are human-readable streams
 //       To view a data summary (ex. number of buffers processed, words received, etc.) define printBufferSummary
-#define defaultBaudUSB 921600 // IMPORTANT: must be 921600 when using streaAcousticControlLog (to be fast enough to keep up with data stream)
+#define serialDefaultBaudUSB 921600 // IMPORTANT: must be 921600 when using streaAcousticControlLog (to be fast enough to keep up with data stream)
 #define printBufferSummary    // print a summary of how many buffers were processed, the last computed tone powers, etc. once the controller is stopped
 /* SEE ALSO: streamAcousticControlLog, defined in ToneDetector.h
    If defined, will update the following (see end of processTonePowers for how they're packaged):
