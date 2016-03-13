@@ -4,9 +4,10 @@ sudo /home/pi/fish/mbed/remountMbed.sh
 #sudo python /home/pi/fish/mbed/resetMbed.py
 echo "-- Starting video and low battery monitor"
 sudo python /home/pi/fish/python/rx_controller.py &
-echo "-- Starting serial monitor to record data"
-cd /home/pi/fish/mbed
-#sudo python /home/pi/fish/mbed/runProgram.py startup=1 print=0 file='data.wp' &
-sudo /home/pi/fish/startup_rx_serial.sh &
+#echo "-- Starting serial monitor to record data"
+#cd /home/pi/fish/mbed
+#sudo /home/pi/fish/startup_rx_serial.sh &
+echo "-- Starting Joystick Controller"
+sudo python /home/pi/fish/python/bluetooth_joystick/FishJoystickController.py &
 echo "- Startup script complete"
 
